@@ -1,0 +1,1 @@
+"""Social publishing integration placeholder."""

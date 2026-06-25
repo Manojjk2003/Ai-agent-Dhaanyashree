@@ -1,0 +1,1 @@
+"""Product selection agent placeholder."""

@@ -1,0 +1,64 @@
+:root {
+  color: #17211d;
+  background: #f7f8f5;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 32px 0;
+}
+
+.dashboard {
+  width: 100%;
+}
+
+.dashboard-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.dashboard-subtitle {
+  max-width: 720px;
+}
+
+.metric-card,
+.next-panel {
+  border: 1px solid #dde4dc;
+  box-shadow: none;
+  height: 100%;
+  padding: 24px;
+}
+
+.metric-card {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.next-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.action-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 20px 0;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+  }
+}
