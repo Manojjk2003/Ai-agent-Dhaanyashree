@@ -1,14 +1,24 @@
 from functools import lru_cache
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
     app_env: str = "development"
     cors_origins_raw: str = "http://localhost:5173"
     llm_provider: str = "mock"
+    firebase_project_id: str | None = None
+    firebase_client_email: str | None = None
+    firebase_private_key: str | None = None
+    firebase_storage_bucket: str | None = None
+    firebase_service_account_file: str | None = None
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=BACKEND_DIR / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -20,6 +30,18 @@ class Settings(BaseSettings):
             for origin in self.cors_origins_raw.split(",")
             if origin.strip()
         ]
+
+    @property
+    def firebase_admin_configured(self) -> bool:
+        has_service_file = bool(self.firebase_service_account_file)
+        has_inline_credentials = all(
+            [
+                self.firebase_project_id,
+                self.firebase_client_email,
+                self.firebase_private_key,
+            ]
+        )
+        return has_service_file or has_inline_credentials
 
 
 @lru_cache

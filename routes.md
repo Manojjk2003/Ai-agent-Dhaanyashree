@@ -6,17 +6,20 @@ Update this file whenever frontend pages, layouts, protected routes, backend rou
 
 ## Current State
 
-Phase 1 scaffold routes exist. Frontend has a single dashboard shell without React Router. Backend has health and daily-plan endpoints.
+Phase 3 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products view switch without React Router. Backend has health, auth, business profile, product, and daily-plan endpoints.
 
 ## Planned Frontend Routes
 
 | Route | File | Purpose | Auth Required |
 |---|---|---|---|
-| `/` | `frontend/src/pages/Dashboard/DashboardPage.tsx` | Current dashboard shell | No |
-| `/login` | `frontend/src/pages/Login/` | User sign in | No |
-| `/` | `frontend/src/pages/Dashboard/` | Main protected business dashboard after auth is added | Yes |
-| `/business` | `frontend/src/pages/BusinessProfile/` | Business profile, audience, goals, brand tone | Yes |
-| `/products` | `frontend/src/pages/Products/` | Product management | Yes |
+| Login view | `frontend/src/pages/Login/LoginPage.tsx` | Email/password sign in and sign up | No |
+| Dashboard view | `frontend/src/pages/Dashboard/DashboardPage.tsx` | Main dashboard shell | Yes |
+| Business view | `frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx` | Business profile, audience, goals, brand tone | Yes |
+| Products view | `frontend/src/pages/Products/ProductsPage.tsx` | Product memory management | Yes |
+| `/login` | `frontend/src/pages/Login/` | Future React Router login route | No |
+| `/` | `frontend/src/pages/Dashboard/` | Future React Router dashboard route | Yes |
+| `/business` | `frontend/src/pages/BusinessProfile/` | Future React Router business profile route | Yes |
+| `/products` | `frontend/src/pages/Products/` | Future React Router product route | Yes |
 | `/calendar` | `frontend/src/pages/ContentCalendar/` | Content calendar and scheduling | Yes |
 | `/content` | `frontend/src/pages/GeneratedContent/` | Generated captions, hashtags, and post drafts | Yes |
 | `/posters` | `frontend/src/pages/Posters/` | Generated poster gallery and editor/review screen | Yes |
@@ -32,14 +35,14 @@ Phase 1 scaffold routes exist. Frontend has a single dashboard shell without Rea
 | Method | Route | Purpose | Auth Required |
 |---|---|---|---|
 | `GET` | `/health` | Backend health check, implemented | No |
-| `GET` | `/me` | Current user context | Yes |
-| `POST` | `/business/profile` | Create or update business profile | Yes |
-| `GET` | `/business/profile` | Read current business profile | Yes |
-| `POST` | `/products` | Create product | Yes |
-| `GET` | `/products` | List products | Yes |
-| `GET` | `/products/{product_id}` | Read product | Yes |
-| `PATCH` | `/products/{product_id}` | Update product | Yes |
-| `DELETE` | `/products/{product_id}` | Delete or archive product | Yes |
+| `GET` | `/me` | Current Firebase user context, implemented | Yes |
+| `POST` | `/business/profile` | Create or update business profile, implemented | Yes |
+| `GET` | `/business/profile` | Read current business profile, implemented | Yes |
+| `POST` | `/products` | Create product, implemented | Yes |
+| `GET` | `/products` | List products, implemented | Yes |
+| `GET` | `/products/{product_id}` | Read product, implemented | Yes |
+| `PATCH` | `/products/{product_id}` | Update product, implemented | Yes |
+| `DELETE` | `/products/{product_id}` | Delete product, implemented | Yes |
 | `POST` | `/agent/run-daily-plan` | Generate daily marketing plan and assets, scaffold implemented without auth | Planned Yes |
 | `GET` | `/content/plans` | List content plans | Yes |
 | `GET` | `/content/posts` | List generated posts | Yes |

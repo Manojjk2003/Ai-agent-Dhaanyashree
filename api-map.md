@@ -6,21 +6,21 @@ Update this file whenever an endpoint is added, removed, renamed, or its request
 
 ## Current State
 
-Phase 1 backend scaffold exists. `GET /health` and `POST /agent/run-daily-plan` are implemented. The daily-plan endpoint currently returns placeholder IDs from a placeholder graph rather than running real agents.
+Phase 3 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs, product APIs, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. The daily-plan endpoint currently returns placeholder IDs from a placeholder graph rather than running real agents.
 
 ## API Inventory
 
 | Method | Route | Purpose | Used By |
 |---|---|---|---|
 | `GET` | `/health` | Health check, implemented | Hosting, uptime checks, frontend dashboard |
-| `GET` | `/me` | Return authenticated user and business context | Frontend shell |
-| `POST` | `/business/profile` | Create or update business profile | Business Profile page |
-| `GET` | `/business/profile` | Read business profile | Dashboard, agents |
-| `POST` | `/products` | Create product | Products page |
-| `GET` | `/products` | List products | Dashboard, Products page, agents |
-| `GET` | `/products/{product_id}` | Read product details | Products page |
-| `PATCH` | `/products/{product_id}` | Update product | Products page |
-| `DELETE` | `/products/{product_id}` | Archive/delete product | Products page |
+| `GET` | `/me` | Return authenticated Firebase user | Frontend shell |
+| `POST` | `/business/profile` | Create or update business profile, implemented | Business Profile page |
+| `GET` | `/business/profile` | Read business profile, implemented | Business Profile page, future agents |
+| `POST` | `/products` | Create product, implemented | Products page |
+| `GET` | `/products` | List products, implemented | Dashboard, Products page, future agents |
+| `GET` | `/products/{product_id}` | Read product details, implemented | Products page |
+| `PATCH` | `/products/{product_id}` | Update product, implemented | Products page |
+| `DELETE` | `/products/{product_id}` | Delete product, implemented | Products page |
 | `POST` | `/agent/run-daily-plan` | Generate placeholder daily marketing plan, implemented scaffold | Dashboard, future scheduler |
 | `GET` | `/content/plans` | List content plans | Calendar |
 | `GET` | `/content/posts` | List generated posts | Generated Content page |
@@ -35,6 +35,32 @@ Phase 1 backend scaffold exists. `GET /health` and `POST /agent/run-daily-plan` 
 
 ## Planned Contract Sketches
 
+Protected requests use:
+
+```text
+Authorization: Bearer <firebase_id_token>
+```
+
+Swagger UI is available at:
+
+```text
+http://localhost:8000/docs
+```
+
+Use the Authorize button and paste only the Firebase ID token value, not the `Bearer` prefix.
+
+### `GET /me`
+
+Response:
+
+```json
+{
+  "uid": "firebase_uid",
+  "email": "owner@example.com",
+  "name": "Business Owner"
+}
+```
+
 ### `POST /business/profile`
 
 Purpose: save business memory.
@@ -43,10 +69,11 @@ Request:
 
 ```json
 {
-  "businessName": "Example Millet Foods",
+  "business_name": "Example Millet Foods",
   "industry": "Health food",
-  "targetAudience": ["working mothers", "health-conscious families"],
-  "brandTone": "warm, trustworthy, practical",
+  "description": "Millet-based healthy breakfast products",
+  "target_audience": ["working mothers", "health-conscious families"],
+  "brand_tone": "warm, trustworthy, practical",
   "goals": ["increase daily orders", "grow Instagram reach"]
 }
 ```
@@ -55,8 +82,33 @@ Response:
 
 ```json
 {
-  "businessId": "business_123",
+  "business_id": "firebase_uid",
+  "owner_user_id": "firebase_uid",
+  "business_name": "Example Millet Foods",
+  "industry": "Health food",
+  "description": "Millet-based healthy breakfast products",
+  "target_audience": ["working mothers", "health-conscious families"],
+  "brand_tone": "warm, trustworthy, practical",
+  "goals": ["increase daily orders", "grow Instagram reach"],
   "updated": true
+}
+```
+
+### `GET /business/profile`
+
+Response:
+
+```json
+{
+  "business_id": "firebase_uid",
+  "owner_user_id": "firebase_uid",
+  "business_name": "Example Millet Foods",
+  "industry": "Health food",
+  "description": "Millet-based healthy breakfast products",
+  "target_audience": ["working mothers", "health-conscious families"],
+  "brand_tone": "warm, trustworthy, practical",
+  "goals": ["increase daily orders"],
+  "updated": false
 }
 ```
 
@@ -69,10 +121,14 @@ Request:
 ```json
 {
   "name": "Ragi Malt",
-  "benefits": ["High calcium", "Rich fiber", "Healthy breakfast"],
-  "price": 199,
   "category": "Breakfast",
-  "targetAudience": ["kids", "families"]
+  "description": "Instant ragi breakfast drink",
+  "benefits": ["High calcium", "Rich fiber", "Healthy breakfast"],
+  "ingredients": ["Ragi", "Jaggery"],
+  "price": 199,
+  "target_audience": ["kids", "families"],
+  "image_url": "",
+  "is_active": true
 }
 ```
 
@@ -80,8 +136,40 @@ Response:
 
 ```json
 {
-  "productId": "product_123"
+  "product_id": "product_123",
+  "business_id": "firebase_uid",
+  "name": "Ragi Malt",
+  "category": "Breakfast",
+  "description": "Instant ragi breakfast drink",
+  "benefits": ["High calcium", "Rich fiber", "Healthy breakfast"],
+  "ingredients": ["Ragi", "Jaggery"],
+  "price": 199,
+  "target_audience": ["kids", "families"],
+  "image_url": "",
+  "is_active": true
 }
+```
+
+### `GET /products`
+
+Response:
+
+```json
+[
+  {
+    "product_id": "product_123",
+    "business_id": "firebase_uid",
+    "name": "Ragi Malt",
+    "category": "Breakfast",
+    "description": "Instant ragi breakfast drink",
+    "benefits": ["High calcium"],
+    "ingredients": ["Ragi"],
+    "price": 199,
+    "target_audience": ["families"],
+    "image_url": "",
+    "is_active": true
+  }
+]
 ```
 
 ### `POST /agent/run-daily-plan`

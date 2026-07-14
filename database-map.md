@@ -6,7 +6,7 @@ Update this file whenever Firestore collections, document fields, storage paths,
 
 ## Current State
 
-No database implementation exists yet. Firebase config placeholders and a backend Firebase service placeholder exist. This file defines the planned Firestore and Firebase Storage model.
+Business profile read/write is implemented through the backend Firebase Admin service once service-account environment variables are configured. The frontend Firebase web client is initialized for Auth, Firestore, Storage, and Analytics.
 
 ## Firestore Collections
 
@@ -35,12 +35,19 @@ Fields:
 
 - `businessId`
 - `ownerUserId`
-- `name`
+- `business_name`
 - `industry`
 - `description`
 - `goals`
+- `target_audience`
+- `brand_tone`
 - `createdAt`
 - `updatedAt`
+
+Current implementation detail:
+
+- Document path: `businesses/{firebase_uid}`
+- Stored field names currently use snake_case, matching the API schemas.
 
 Relationships:
 
@@ -61,7 +68,7 @@ Fields:
 - `preferredLanguages`
 - `updatedAt`
 
-### `products`
+### `businesses/{businessId}/products`
 
 Purpose: products the agent can promote.
 
@@ -74,12 +81,17 @@ Fields:
 - `ingredients`
 - `price`
 - `category`
-- `imageUrls`
-- `inventoryStatus`
+- `image_url`
 - `targetAudience`
 - `isActive`
 - `createdAt`
 - `updatedAt`
+
+Current implementation detail:
+
+- Document path: `businesses/{firebase_uid}/products/{productId}`
+- Stored field names currently use snake_case, matching the API schemas.
+- `DELETE /products/{product_id}` physically deletes the product document in the current MVP.
 
 ### `trends`
 

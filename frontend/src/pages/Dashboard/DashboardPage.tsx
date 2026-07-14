@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -10,18 +11,22 @@ import {
 } from "@mui/material";
 import { CalendarDays, Megaphone, RefreshCw, Sparkles } from "lucide-react";
 
-import { getHealth } from "../../services/api";
+import { useAuth } from "../../auth/AuthContext";
+import { getHealth, listProducts } from "../../services/api";
 
 type ApiStatus = "checking" | "online" | "offline";
 
 const nextActions = [
-  "Add Firebase Auth and business profile storage",
   "Create product management",
   "Wire the daily LangGraph workflow to real business data",
+  "Use the business profile in content generation",
 ];
 
 export function DashboardPage() {
+  const { getIdToken } = useAuth();
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
+  const [productCount, setProductCount] = useState<number | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
 
   useEffect(() => {
     getHealth()
@@ -29,8 +34,22 @@ export function DashboardPage() {
       .catch(() => setApiStatus("offline"));
   }, []);
 
+  useEffect(() => {
+    getIdToken()
+      .then((token) => listProducts(token))
+      .then((products) => setProductCount(products.length))
+      .catch(() => setProductCount(null));
+  }, [getIdToken]);
+
   const statusColor =
     apiStatus === "online" ? "success" : apiStatus === "offline" ? "error" : "warning";
+
+  async function copyFirebaseToken() {
+    const token = await getIdToken();
+    await navigator.clipboard.writeText(token);
+    setTokenCopied(true);
+    window.setTimeout(() => setTokenCopied(false), 3000);
+  }
 
   return (
     <Stack spacing={3} className="dashboard">
@@ -41,8 +60,8 @@ export function DashboardPage() {
           </Typography>
           <Typography variant="h1">Daily marketing command center</Typography>
           <Typography color="text.secondary" className="dashboard-subtitle">
-            The first foundation is ready: React frontend, FastAPI backend,
-            and a placeholder LangGraph workflow.
+            Auth and business memory are now the active foundation for the
+            marketing agent.
           </Typography>
         </Stack>
 
@@ -64,6 +83,21 @@ export function DashboardPage() {
             </Typography>
             <Button variant="contained" disabled>
               Generate Soon
+            </Button>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Paper className="metric-card">
+            <Sparkles size={24} />
+            <Typography variant="h2">Product Memory</Typography>
+            <Typography color="text.secondary">
+              {productCount === null
+                ? "Connect Firebase Admin to read product memory."
+                : `${productCount} products available for agent planning.`}
+            </Typography>
+            <Button variant="outlined" disabled>
+              Manage Products
             </Button>
           </Paper>
         </Grid>
@@ -104,6 +138,18 @@ export function DashboardPage() {
             </Typography>
           ))}
         </Stack>
+      </Paper>
+
+      <Paper className="next-panel">
+        <Typography variant="h2">API testing</Typography>
+        <Typography color="text.secondary">
+          Copy your Firebase ID token, open FastAPI Swagger at the backend
+          `/docs` page, click Authorize, and paste the token.
+        </Typography>
+        {tokenCopied ? <Alert severity="success">Firebase ID token copied.</Alert> : null}
+        <Button onClick={copyFirebaseToken} variant="outlined">
+          Copy Firebase ID Token
+        </Button>
       </Paper>
     </Stack>
   );

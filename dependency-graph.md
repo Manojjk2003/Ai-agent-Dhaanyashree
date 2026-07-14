@@ -6,7 +6,7 @@ Update this file whenever important modules are added, removed, renamed, or thei
 
 ## Current State
 
-Phase 1 source files exist. This file now tracks the current scaffold graph and the intended module dependency graph.
+Phase 2 source files exist. This file now tracks the current scaffold graph and the intended module dependency graph.
 
 ## Current Backend Dependency Graph
 
@@ -14,10 +14,29 @@ Phase 1 source files exist. This file now tracks the current scaffold graph and 
 backend/app/main.py
   -> backend/app/config.py
   -> backend/app/api/routes_health.py
+  -> backend/app/api/routes_auth.py
+  -> backend/app/api/routes_business.py
+  -> backend/app/api/routes_products.py
   -> backend/app/api/routes_agent.py
 
 backend/app/api/routes_health.py
   -> backend/app/schemas/health.py
+
+backend/app/api/routes_auth.py
+  -> backend/app/dependencies.py
+  -> backend/app/schemas/auth.py
+
+backend/app/api/routes_business.py
+  -> backend/app/dependencies.py
+  -> backend/app/schemas/auth.py
+  -> backend/app/schemas/business.py
+  -> backend/app/services/firebase_service.py
+
+backend/app/api/routes_products.py
+  -> backend/app/dependencies.py
+  -> backend/app/schemas/auth.py
+  -> backend/app/schemas/product.py
+  -> backend/app/services/firebase_service.py
 
 backend/app/api/routes_agent.py
   -> backend/app/graphs/daily_marketing_graph.py
@@ -25,6 +44,17 @@ backend/app/api/routes_agent.py
 
 backend/app/graphs/daily_marketing_graph.py
   -> backend/app/schemas/agent.py
+
+backend/app/dependencies.py
+  -> backend/app/services/firebase_service.py
+  -> backend/app/schemas/auth.py
+
+backend/app/services/firebase_service.py
+  -> backend/app/config.py
+  -> backend/app/schemas/auth.py
+  -> backend/app/schemas/business.py
+  -> backend/app/schemas/product.py
+  -> Firebase Admin SDK
 ```
 
 ## Current Frontend Dependency Graph
@@ -33,13 +63,33 @@ backend/app/graphs/daily_marketing_graph.py
 frontend/src/main.tsx
   -> frontend/src/app/App.tsx
   -> frontend/src/app/theme.ts
+  -> frontend/src/auth/AuthContext.tsx
+  -> frontend/src/lib/firebase.ts
   -> frontend/src/styles.css
 
 frontend/src/app/App.tsx
+  -> frontend/src/auth/AuthContext.tsx
   -> frontend/src/pages/Dashboard/DashboardPage.tsx
+  -> frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx
+  -> frontend/src/pages/Login/LoginPage.tsx
+  -> frontend/src/pages/Products/ProductsPage.tsx
 
 frontend/src/pages/Dashboard/DashboardPage.tsx
   -> frontend/src/services/api.ts
+
+frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx
+  -> frontend/src/auth/AuthContext.tsx
+  -> frontend/src/services/api.ts
+
+frontend/src/pages/Products/ProductsPage.tsx
+  -> frontend/src/auth/AuthContext.tsx
+  -> frontend/src/services/api.ts
+
+frontend/src/pages/Login/LoginPage.tsx
+  -> frontend/src/auth/AuthContext.tsx
+
+frontend/src/lib/firebase.ts
+  -> Firebase Web SDK
 ```
 
 ## Planned Frontend Dependency Graph
@@ -58,7 +108,7 @@ Planned rules:
 
 - Pages compose components and call hooks/services.
 - Components should avoid direct API calls unless they are feature-specific containers.
-- Services own HTTP calls and Firebase client integration.
+- Services own HTTP calls. Firebase client initialization lives in `frontend/src/lib/firebase.ts`.
 - Hooks own frontend orchestration and state.
 - Types define shared frontend contracts.
 - `lib` stores reusable helpers.
@@ -102,6 +152,7 @@ These files should be changed carefully once created:
 - `backend/app/services/llm_service.py`: model provider abstraction.
 - `backend/app/services/social_service.py`: publishing behavior.
 - `frontend/src/app/`: frontend shell and theme. Created in Phase 1.
+- `frontend/src/lib/firebase.ts`: Firebase Web SDK initialization. Created after Firebase project config was supplied.
 - `frontend/src/services/api.ts`: frontend/backend API contract. Created in Phase 1.
 
 ## Planned High-Impact Areas

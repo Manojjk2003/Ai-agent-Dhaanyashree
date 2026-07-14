@@ -1,4 +1,60 @@
-﻿## Phase 1 Setup Status
+﻿## Phase 3 Setup Status
+
+Status: product memory foundation created.
+
+Created:
+
+- `backend/app/schemas/product.py` product request/response schemas.
+- `backend/app/api/routes_products.py` protected product CRUD APIs.
+- Firestore product storage under `businesses/{firebase_uid}/products/{productId}`.
+- `frontend/src/pages/Products/ProductsPage.tsx` product management UI.
+- Frontend product API helpers in `frontend/src/services/api.ts`.
+- Products navigation in the protected app shell.
+- Dashboard product memory count.
+
+Implemented backend routes:
+
+- `POST /products`.
+- `GET /products`.
+- `GET /products/{product_id}`.
+- `PATCH /products/{product_id}`.
+- `DELETE /products/{product_id}`.
+
+Requirements before live runtime:
+
+- Firebase Admin service-account values must be present in backend `.env`.
+- Firestore must be enabled in Firebase Console.
+
+Next phase:
+
+- Wire business profile + products into the first real LangGraph daily marketing workflow.
+- Generate product selection, content idea, caption, hashtags, and poster prompt.
+## Phase 2 Setup Status
+
+Status: Firebase Auth and business profile foundation created.
+
+Created:
+
+- `frontend/src/auth/AuthContext.tsx` Firebase Auth session provider.
+- `frontend/src/pages/Login/LoginPage.tsx` email/password login and sign-up UI.
+- `frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx` business memory form.
+- Backend Firebase token verification dependency.
+- `GET /me`.
+- `GET /business/profile`.
+- `POST /business/profile`.
+
+Requirements before live runtime:
+
+- Enable Email/Password provider in Firebase Authentication.
+- Add Firebase Admin service-account values to backend `.env`.
+- Install frontend and backend dependencies.
+
+Next phase:
+
+- Product management.
+- Use business profile and products inside the LangGraph daily marketing workflow.
+
+## Phase 1 Setup Status
 
 Status: foundation scaffold created.
 
@@ -9,6 +65,7 @@ Created:
 - `backend/app/agents/` placeholder MVP agent modules.
 - `backend/app/services/` placeholder integration modules.
 - `frontend/` React + Vite + Material UI dashboard skeleton.
+- `frontend/src/lib/firebase.ts` Firebase Web SDK initialization.
 - Root `.env.example`, `.gitignore`, and `README.md`.
 
 Implemented initial backend routes:
@@ -480,3 +537,18 @@ Agents do each task.
 ```
 
 So yes: **LangGraph belongs in the backend folder with FastAPI.**
+
+
+Next practical step is installing tools/dependencies, then running:
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+
+
+Node.js is installed:
+cd frontend
+npm install
+npm run dev
+

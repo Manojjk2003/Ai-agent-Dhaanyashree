@@ -15,7 +15,7 @@ Whenever code, configuration, routes, APIs, database schema, agent behavior, dep
 
 The project is intended to become an AI Marketing Partner for small business owners. The system should understand the business, products, audience, brand tone, trends, content performance, and sales signals, then generate marketing actions such as captions, posters, reels, SEO ideas, calendar plans, and recommendations.
 
-Current repository state: Phase 1 foundation scaffold exists. The workspace now contains a React/Vite frontend skeleton, a FastAPI backend skeleton, a placeholder LangGraph workflow location, root environment/ignore/readme files, and project memory documents.
+Current repository state: Phase 3 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, business profile form, product management, a FastAPI backend with Firebase token verification plus business/product routes, a placeholder LangGraph workflow location, root environment/ignore/readme files, and project memory documents.
 
 Verified from repository: `git status` reports this is not a valid Git repository, even though a `.git` entry is present in the workspace.
 
@@ -65,7 +65,7 @@ Actual detected stack:
 - Frontend: React, Vite, TypeScript, Material UI, lucide-react
 - Backend: FastAPI, Pydantic Settings
 - Agent orchestration: LangGraph dependency declared; workflow implementation is currently a placeholder in `backend/app/graphs/daily_marketing_graph.py`
-- Database/storage/auth: Firebase dependencies/config placeholders only; no implementation yet
+- Database/storage/auth: Firebase frontend client initialization and Auth UI exist. Backend Firebase Admin token verification and business profile/product Firestore persistence are implemented, but require service-account environment variables. Storage usage is not implemented yet.
 
 ## Repository Structure
 
@@ -145,6 +145,7 @@ S:\ai agent\
 |-- frontend/
 |   |-- src/
 |   |   |-- app/
+|   |   |-- lib/
 |   |   |-- pages/
 |   |   |-- services/
 |   |   |-- main.tsx
@@ -246,11 +247,18 @@ Actual frontend architecture:
 
 - Entry point: `frontend/src/main.tsx`
 - App shell: `frontend/src/app/App.tsx`
+- Auth provider: `frontend/src/auth/AuthContext.tsx`
 - Theme: `frontend/src/app/theme.ts`
+- Firebase client: `frontend/src/lib/firebase.ts`
 - Current page: `frontend/src/pages/Dashboard/DashboardPage.tsx`
+- Login page: `frontend/src/pages/Login/LoginPage.tsx`
+- Business profile page: `frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx`
+- Products page: `frontend/src/pages/Products/ProductsPage.tsx`
 - API helper: `frontend/src/services/api.ts`
 - The dashboard checks `GET /health` and displays API online/offline status.
-- Routing and Firebase Auth are not implemented yet.
+- Firebase app/auth/firestore/storage/analytics clients are initialized from Vite environment variables.
+- Firebase Auth UI/session flow is implemented with email/password sign in and sign up.
+- React Router is not implemented yet; navigation is currently an in-app view switch.
 
 ## Backend Architecture
 
@@ -272,6 +280,11 @@ Actual backend architecture:
 - Routes:
   - `backend/app/api/routes_health.py`
   - `backend/app/api/routes_agent.py`
+  - `backend/app/api/routes_auth.py`
+  - `backend/app/api/routes_business.py`
+  - `backend/app/api/routes_products.py`
+- Auth dependency:
+  - `backend/app/dependencies.py`
 - Schemas:
   - `backend/app/schemas/health.py`
   - `backend/app/schemas/agent.py`
@@ -307,9 +320,10 @@ Detailed schema is documented in `database-map.md`.
 
 Actual database implementation:
 
-- No Firestore repository implementation exists yet.
-- Firebase environment placeholders exist in `.env.example`.
-- `backend/app/services/firebase_service.py` exists as a placeholder.
+- Business profile and product Firestore read/write exists in `backend/app/services/firebase_service.py`.
+- Firebase frontend environment variables exist in `.env.example`; local values are stored in ignored `frontend/.env.local`.
+- `frontend/.env.example` documents the Vite Firebase variables used when running from the frontend directory.
+- Backend Firebase Admin supports `FIREBASE_SERVICE_ACCOUNT_FILE` or inline `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`.
 
 ## Authentication Flow
 
@@ -336,14 +350,25 @@ Protected API action runs
 
 Actual authentication:
 
-- Not implemented yet.
-- Firebase client/admin config placeholders exist only.
+- Firebase frontend client initialization exists.
+- Login UI and session handling are implemented through `frontend/src/auth/AuthContext.tsx`.
+- Backend token verification is implemented in `backend/app/dependencies.py` and `backend/app/services/firebase_service.py`.
+- Backend verification requires Firebase Admin service-account environment variables.
+- Swagger UI is available at `/docs`; protected routes use FastAPI HTTP Bearer auth with Firebase ID tokens.
 
 ## API Inventory
 
 Implemented APIs:
 
 - `GET /health`
+- `GET /me`
+- `GET /business/profile`
+- `POST /business/profile`
+- `POST /products`
+- `GET /products`
+- `GET /products/{product_id}`
+- `PATCH /products/{product_id}`
+- `DELETE /products/{product_id}`
 - `POST /agent/run-daily-plan`
 
 Full API status is documented in `api-map.md`.
@@ -418,6 +443,13 @@ Planned environment variables:
 - `FIREBASE_CLIENT_EMAIL`
 - `FIREBASE_PRIVATE_KEY`
 - `FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_FIREBASE_MEASUREMENT_ID`
 - `LLM_PROVIDER`
 - `GEMINI_API_KEY`
 - `OPENROUTER_API_KEY`
@@ -447,8 +479,9 @@ Planned integrations:
 
 Actual integrations:
 
-- No live third-party integration is implemented yet.
-- Dependencies/config placeholders exist for LangGraph and Firebase.
+- Frontend Firebase client initialization exists for app, auth, Firestore, Storage, and Analytics.
+- Backend Firebase Admin token verification and business profile Firestore access are implemented, but require service-account environment variables.
+- Dependencies/config placeholders exist for LangGraph.
 
 ## Feature Inventory
 
@@ -456,7 +489,7 @@ Actual integrations:
 
 Purpose: store business profile, products, benefits, target audience, pricing, brand tone, and goals.
 
-Status: planned.
+Status: business profile and product memory implemented.
 
 ### Daily Content Generation
 
@@ -540,8 +573,8 @@ Known future performance concerns:
 
 Current debt:
 
-- Firebase Auth is not implemented yet.
-- Firestore repositories are not implemented yet.
+- Firebase Admin credentials are not present in the workspace, so protected backend routes need `FIREBASE_SERVICE_ACCOUNT_FILE` or inline service-account environment setup before runtime testing.
+- Firebase Authentication must be initialized in Firebase Console and Email/Password sign-in must be enabled before the frontend login screen can create accounts.
 - LangGraph dependency is declared, but the daily graph is currently a placeholder function.
 - Frontend routing is not implemented yet.
 - Dependencies have not been installed in this work session.

@@ -40,6 +40,32 @@ Backend health check:
 http://localhost:8000/health
 ```
 
+Swagger UI:
+
+```text
+http://localhost:8000/docs
+```
+
+For protected routes, log in from the frontend, copy the Firebase ID token from the dashboard, click **Authorize** in Swagger, and paste the token without the `Bearer` prefix.
+
+Protected backend routes need Firebase Admin credentials in `backend/.env` or the shell environment.
+
+Recommended local setup:
+
+```text
+FIREBASE_SERVICE_ACCOUNT_FILE=C:\absolute\path\to\service-account.json
+FIREBASE_STORAGE_BUCKET=ai-agent-dhaanyashree.firebasestorage.app
+```
+
+Alternative inline setup:
+
+```text
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+FIREBASE_STORAGE_BUCKET=
+```
+
 ## Frontend
 
 ```powershell
@@ -53,6 +79,17 @@ Frontend dev server:
 ```text
 http://localhost:5173
 ```
+
+The frontend reads Firebase Web SDK settings from `frontend/.env.local`.
+
+Enable the Email/Password provider in Firebase Authentication before using the login screen:
+
+1. Open Firebase Console.
+2. Select the `ai-agent-dhaanyashree` project.
+3. Go to Authentication.
+4. Click Get started if Authentication has not been initialized.
+5. Open Sign-in method.
+6. Enable Email/Password.
 
 ## Documentation Rule
 

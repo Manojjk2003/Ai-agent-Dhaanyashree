@@ -6,7 +6,7 @@ Update this file whenever system boundaries, services, agents, deployment shape,
 
 ## Current State
 
-Phase 1 foundation scaffold exists. The backend has a FastAPI app, health route, daily-plan route, schema modules, placeholder agent modules, service modules, and a placeholder LangGraph workflow location. The frontend has a Vite React dashboard skeleton that checks backend health.
+Phase 3 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, and includes business profile and product management forms. The backend has health, current-user, business profile, product, and daily-plan routes. Firebase Admin verification and Firestore business/product persistence are implemented, but require service-account environment variables to run.
 
 ## Intended System Map
 
@@ -15,6 +15,8 @@ Browser
   |
   v
 React + Vite + Material UI
+  |
+  +--> Firebase Web SDK: initialized
   |
   | HTTPS + Firebase ID token
   v
@@ -25,8 +27,10 @@ FastAPI Backend
   |
   +--> API Routes
   |       +--> Health API: implemented
+  |       +--> Auth API: implemented
+  |       +--> Business/Profile APIs: implemented
+  |       +--> Product APIs: implemented
   |       +--> Daily Plan API: scaffolded
-  |       +--> Business/Profile APIs: planned
   |       +--> Product APIs: planned
   |       +--> Content APIs: planned
   |       +--> Poster APIs: planned
@@ -48,10 +52,11 @@ FastAPI Backend
   |       `--> Scheduler Service: placeholder
   |
   v
-Firebase: planned
+Firebase
   +--> Auth
   +--> Firestore
-  `--> Storage
+  +--> Storage
+  `--> Analytics
 ```
 
 ## Agent Architecture
@@ -183,6 +188,8 @@ Current scaffold behavior:
 
 ```text
 Frontend dashboard
+  |
+  +--> Initializes Firebase web client
   |
   v
 GET /health
