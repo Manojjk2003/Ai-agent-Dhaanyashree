@@ -152,12 +152,12 @@ export function ProductsPage() {
       <Box className="dashboard-header">
         <Stack spacing={1}>
           <Typography variant="overline" color="secondary">
-            Product Memory
+            Products Under This Business
           </Typography>
           <Typography variant="h1">Products</Typography>
           <Typography color="text.secondary" className="dashboard-subtitle">
-            Add the products the marketing agent can promote, compare, and use
-            when creating captions, posters, SEO, and campaigns.
+            Add multiple products under your one business profile so the
+            marketing agent knows what it can promote.
           </Typography>
         </Stack>
         <Stack direction="row" spacing={1}>
@@ -316,8 +316,8 @@ export function ProductsPage() {
             {!loading && products.length === 0 ? (
               <Paper className="product-card">
                 <Typography color="text.secondary">
-                  No products yet. Add your first product to start building
-                  marketing memory.
+                  No products yet. Add your first product under this business
+                  profile.
                 </Typography>
               </Paper>
             ) : null}

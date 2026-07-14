@@ -12,14 +12,19 @@ import {
 import { CalendarDays, Megaphone, RefreshCw, Sparkles } from "lucide-react";
 
 import { useAuth } from "../../auth/AuthContext";
-import { getHealth, listProducts } from "../../services/api";
+import {
+  DailyPlanResponse,
+  getHealth,
+  listProducts,
+  runDailyPlan,
+} from "../../services/api";
 
 type ApiStatus = "checking" | "online" | "offline";
 
 const nextActions = [
-  "Create product management",
-  "Wire the daily LangGraph workflow to real business data",
-  "Use the business profile in content generation",
+  "Generate today's marketing plan from business profile and products",
+  "Review caption, hashtags, and poster prompt",
+  "Save generated content to a content calendar",
 ];
 
 export function DashboardPage() {
@@ -27,6 +32,9 @@ export function DashboardPage() {
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
   const [productCount, setProductCount] = useState<number | null>(null);
   const [tokenCopied, setTokenCopied] = useState(false);
+  const [dailyPlan, setDailyPlan] = useState<DailyPlanResponse | null>(null);
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
 
   useEffect(() => {
     getHealth()
@@ -51,6 +59,20 @@ export function DashboardPage() {
     window.setTimeout(() => setTokenCopied(false), 3000);
   }
 
+  async function generateDailyPlan() {
+    setPlanError(null);
+    setGeneratingPlan(true);
+
+    try {
+      const token = await getIdToken();
+      setDailyPlan(await runDailyPlan(token));
+    } catch (exc) {
+      setPlanError(exc instanceof Error ? exc.message : "Could not generate plan");
+    } finally {
+      setGeneratingPlan(false);
+    }
+  }
+
   return (
     <Stack spacing={3} className="dashboard">
       <Box className="dashboard-header">
@@ -60,8 +82,8 @@ export function DashboardPage() {
           </Typography>
           <Typography variant="h1">Daily marketing command center</Typography>
           <Typography color="text.secondary" className="dashboard-subtitle">
-            Auth and business memory are now the active foundation for the
-            marketing agent.
+            Your one business profile and its products are the active memory
+            for the marketing agent.
           </Typography>
         </Stack>
 
@@ -79,10 +101,15 @@ export function DashboardPage() {
             <Sparkles size={24} />
             <Typography variant="h2">Daily Plan</Typography>
             <Typography color="text.secondary">
-              Generate a product, trend, caption, hashtags, and poster draft.
+              Use your one business profile and products to create today's
+              caption, hashtags, and poster prompt.
             </Typography>
-            <Button variant="contained" disabled>
-              Generate Soon
+            <Button
+              disabled={generatingPlan}
+              onClick={generateDailyPlan}
+              variant="contained"
+            >
+              {generatingPlan ? "Generating..." : "Generate Today"}
             </Button>
           </Paper>
         </Grid>
@@ -90,7 +117,7 @@ export function DashboardPage() {
         <Grid item xs={12} md={4}>
           <Paper className="metric-card">
             <Sparkles size={24} />
-            <Typography variant="h2">Product Memory</Typography>
+            <Typography variant="h2">Products</Typography>
             <Typography color="text.secondary">
               {productCount === null
                 ? "Connect Firebase Admin to read product memory."
@@ -128,6 +155,44 @@ export function DashboardPage() {
           </Paper>
         </Grid>
       </Grid>
+
+      {planError ? <Alert severity="error">{planError}</Alert> : null}
+
+      {dailyPlan ? (
+        <Paper className="next-panel">
+          <Stack spacing={2}>
+            <Stack spacing={0.5}>
+              <Typography variant="overline" color="secondary">
+                Today's Generated Plan
+              </Typography>
+              <Typography variant="h2">{dailyPlan.selected_product_name}</Typography>
+              <Typography color="text.secondary">
+                {dailyPlan.selection_reason}
+              </Typography>
+            </Stack>
+
+            <Stack spacing={1}>
+              <Typography>
+                <strong>Content type:</strong> {dailyPlan.content_type}
+              </Typography>
+              <Typography>
+                <strong>Idea:</strong> {dailyPlan.content_idea}
+              </Typography>
+              <Typography>
+                <strong>Caption:</strong> {dailyPlan.caption}
+              </Typography>
+              <Typography>
+                <strong>Hashtags:</strong> {dailyPlan.hashtags.join(" ")}
+              </Typography>
+              {dailyPlan.poster_prompt ? (
+                <Typography>
+                  <strong>Poster prompt:</strong> {dailyPlan.poster_prompt}
+                </Typography>
+              ) : null}
+            </Stack>
+          </Stack>
+        </Paper>
+      ) : null}
 
       <Paper className="next-panel">
         <Typography variant="h2">Next build steps</Typography>

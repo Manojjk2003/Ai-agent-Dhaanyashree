@@ -6,7 +6,7 @@ Update this file whenever frontend pages, layouts, protected routes, backend rou
 
 ## Current State
 
-Phase 3 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products view switch without React Router. Backend has health, auth, business profile, product, and daily-plan endpoints.
+Phase 4 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products view switch without React Router. Backend has health, auth, business profile, product, and daily-plan endpoints.
 
 ## Planned Frontend Routes
 
@@ -43,7 +43,7 @@ Phase 3 scaffold routes exist. Frontend has an in-app auth-gated dashboard/busin
 | `GET` | `/products/{product_id}` | Read product, implemented | Yes |
 | `PATCH` | `/products/{product_id}` | Update product, implemented | Yes |
 | `DELETE` | `/products/{product_id}` | Delete product, implemented | Yes |
-| `POST` | `/agent/run-daily-plan` | Generate daily marketing plan and assets, scaffold implemented without auth | Planned Yes |
+| `POST` | `/agent/run-daily-plan` | Generate daily marketing plan from one business profile and products, implemented | Yes |
 | `GET` | `/content/plans` | List content plans | Yes |
 | `GET` | `/content/posts` | List generated posts | Yes |
 | `PATCH` | `/content/posts/{post_id}` | Edit generated post | Yes |

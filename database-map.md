@@ -6,7 +6,7 @@ Update this file whenever Firestore collections, document fields, storage paths,
 
 ## Current State
 
-Business profile read/write is implemented through the backend Firebase Admin service once service-account environment variables are configured. The frontend Firebase web client is initialized for Auth, Firestore, Storage, and Analytics.
+Business profile and product read/write are implemented through the backend Firebase Admin service. The frontend Firebase web client is initialized for Auth, Firestore, Storage, and Analytics.
 
 ## Firestore Collections
 
@@ -25,7 +25,7 @@ Fields:
 
 Relationships:
 
-- User can own or access one or more `businesses`.
+- Current product decision: one signed-in user maps to one business document using `businesses/{firebase_uid}`.
 
 ### `businesses`
 
@@ -52,6 +52,7 @@ Current implementation detail:
 Relationships:
 
 - Parent for products, brand profiles, content plans, analytics, recommendations, and logs.
+- Current MVP uses one business profile per user, not multiple businesses per user.
 
 ### `brand_profiles`
 

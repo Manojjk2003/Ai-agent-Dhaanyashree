@@ -6,7 +6,7 @@ Update this file whenever important modules are added, removed, renamed, or thei
 
 ## Current State
 
-Phase 2 source files exist. This file now tracks the current scaffold graph and the intended module dependency graph.
+Phase 4 source files exist. This file tracks the current scaffold graph and the intended module dependency graph.
 
 ## Current Backend Dependency Graph
 
@@ -39,11 +39,20 @@ backend/app/api/routes_products.py
   -> backend/app/services/firebase_service.py
 
 backend/app/api/routes_agent.py
+  -> backend/app/dependencies.py
   -> backend/app/graphs/daily_marketing_graph.py
   -> backend/app/schemas/agent.py
+  -> backend/app/schemas/auth.py
+  -> backend/app/services/firebase_service.py
 
 backend/app/graphs/daily_marketing_graph.py
+  -> backend/app/agents/product_selector.py
+  -> backend/app/agents/content_strategy.py
+  -> backend/app/agents/caption_agent.py
+  -> backend/app/agents/prompt_agent.py
   -> backend/app/schemas/agent.py
+  -> backend/app/schemas/auth.py
+  -> backend/app/services/firebase_service.py
 
 backend/app/dependencies.py
   -> backend/app/services/firebase_service.py
@@ -75,6 +84,7 @@ frontend/src/app/App.tsx
   -> frontend/src/pages/Products/ProductsPage.tsx
 
 frontend/src/pages/Dashboard/DashboardPage.tsx
+  -> frontend/src/auth/AuthContext.tsx
   -> frontend/src/services/api.ts
 
 frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx

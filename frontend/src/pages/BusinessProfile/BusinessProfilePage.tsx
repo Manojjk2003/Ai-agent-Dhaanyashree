@@ -114,11 +114,11 @@ export function BusinessProfilePage() {
       <Box className="dashboard-header">
         <Stack spacing={1}>
           <Typography variant="overline" color="secondary">
-            Business Memory
+            One Business Profile
           </Typography>
           <Typography variant="h1">Business profile</Typography>
           <Typography color="text.secondary" className="dashboard-subtitle">
-            This profile becomes the first memory layer for product selection,
+            This single business profile is the parent memory for all products,
             captions, posters, SEO, and recommendations.
           </Typography>
         </Stack>
@@ -182,7 +182,7 @@ export function BusinessProfilePage() {
           />
 
           <Button disabled={saving || loading} type="submit" variant="contained">
-            Save Business Memory
+            Save Business Profile
           </Button>
         </Stack>
       </Paper>

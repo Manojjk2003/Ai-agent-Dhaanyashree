@@ -15,13 +15,21 @@ Whenever code, configuration, routes, APIs, database schema, agent behavior, dep
 
 The project is intended to become an AI Marketing Partner for small business owners. The system should understand the business, products, audience, brand tone, trends, content performance, and sales signals, then generate marketing actions such as captions, posters, reels, SEO ideas, calendar plans, and recommendations.
 
-Current repository state: Phase 3 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, business profile form, product management, a FastAPI backend with Firebase token verification plus business/product routes, a placeholder LangGraph workflow location, root environment/ignore/readme files, and project memory documents.
+Current repository state: Phase 4 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, one business profile form, product management, daily marketing plan generation, a FastAPI backend with Firebase token verification plus business/product/agent routes, a deterministic LangGraph-boundary workflow, root environment/ignore/readme files, and project memory documents.
 
 Verified from repository: `git status` reports this is not a valid Git repository, even though a `.git` entry is present in the workspace.
 
 ## Business Purpose
 
 The business problem is that small business owners need consistent marketing but often lack time, strategy, design capability, SEO knowledge, trend awareness, and analytics discipline.
+
+The app model is one signed-in user with one business profile and many products:
+
+```text
+User account
+  -> One business profile
+      -> Many products
+```
 
 The intended product gives the owner a single dashboard that answers:
 
@@ -64,7 +72,7 @@ Actual detected stack:
 
 - Frontend: React, Vite, TypeScript, Material UI, lucide-react
 - Backend: FastAPI, Pydantic Settings
-- Agent orchestration: LangGraph dependency declared; workflow implementation is currently a placeholder in `backend/app/graphs/daily_marketing_graph.py`
+- Agent orchestration: LangGraph dependency declared; `backend/app/graphs/daily_marketing_graph.py` currently runs a deterministic graph-boundary workflow that will later be replaced with real LangGraph nodes
 - Database/storage/auth: Firebase frontend client initialization and Auth UI exist. Backend Firebase Admin token verification and business profile/product Firestore persistence are implemented, but require service-account environment variables. Storage usage is not implemented yet.
 
 ## Repository Structure
@@ -575,7 +583,7 @@ Current debt:
 
 - Firebase Admin credentials are not present in the workspace, so protected backend routes need `FIREBASE_SERVICE_ACCOUNT_FILE` or inline service-account environment setup before runtime testing.
 - Firebase Authentication must be initialized in Firebase Console and Email/Password sign-in must be enabled before the frontend login screen can create accounts.
-- LangGraph dependency is declared, but the daily graph is currently a placeholder function.
+- LangGraph dependency is declared, but the daily graph is currently a deterministic graph-boundary function rather than full LangGraph nodes.
 - Frontend routing is not implemented yet.
 - Dependencies have not been installed in this work session.
 - Local verification found Python available, but Node/npm are not on PATH.
@@ -629,7 +637,7 @@ Build in this order:
 1. Project scaffold.
 2. Firebase Auth and business profile.
 3. Product management.
-4. Daily content generation graph.
+4. Daily content generation graph. Current deterministic version is implemented.
 5. Poster generation.
 6. Manual approval and content calendar.
 7. Social scheduling.

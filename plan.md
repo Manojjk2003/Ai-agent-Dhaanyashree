@@ -1,4 +1,32 @@
-﻿## Phase 3 Setup Status
+﻿## Phase 4 Setup Status
+
+Status: first daily marketing workflow created.
+
+Business model decision:
+
+```text
+User account
+  -> One business profile
+      -> Many products
+```
+
+Created:
+
+- Deterministic product selection agent.
+- Deterministic content strategy agent.
+- Deterministic caption/hashtag agent.
+- Deterministic poster prompt agent.
+- Protected `POST /agent/run-daily-plan` using Firebase token auth.
+- Daily plan response with selected product, reason, content type, idea, caption, hashtags, and poster prompt.
+- Dashboard Generate Today action and generated plan panel.
+- UI wording updated around one business profile with many products.
+
+Next phase:
+
+- Save generated plans/posts into Firestore.
+- Add content review/calendar.
+- Later replace deterministic generation with LLM-backed LangGraph nodes.
+## Phase 3 Setup Status
 
 Status: product memory foundation created.
 
@@ -551,4 +579,5 @@ Node.js is installed:
 cd frontend
 npm install
 npm run dev
+
 

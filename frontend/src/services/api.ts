@@ -66,6 +66,24 @@ export type ProductResponse = ProductInput & {
   business_id: string;
 };
 
+export type DailyPlanResponse = {
+  run_id: string;
+  content_plan_id: string;
+  post_id: string;
+  poster_id: string | null;
+  status: "ready_for_review" | "draft";
+  summary: string;
+  business_name: string;
+  selected_product_id: string;
+  selected_product_name: string;
+  selection_reason: string;
+  content_type: string;
+  content_idea: string;
+  caption: string;
+  hashtags: string[];
+  poster_prompt: string | null;
+};
+
 export async function getHealth() {
   return request<{ status: string; service: string }>("/health");
 }
@@ -113,5 +131,17 @@ export async function deleteProduct(token: string, productId: string) {
   return request<null>(`/products/${productId}`, {
     token,
     method: "DELETE",
+  });
+}
+
+export async function runDailyPlan(token: string) {
+  return request<DailyPlanResponse>("/agent/run-daily-plan", {
+    token,
+    method: "POST",
+    body: {
+      run_date: new Date().toISOString().slice(0, 10),
+      platforms: ["instagram"],
+      require_poster: true,
+    },
   });
 }

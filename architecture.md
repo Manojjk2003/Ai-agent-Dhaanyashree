@@ -6,7 +6,7 @@ Update this file whenever system boundaries, services, agents, deployment shape,
 
 ## Current State
 
-Phase 3 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, and includes business profile and product management forms. The backend has health, current-user, business profile, product, and daily-plan routes. Firebase Admin verification and Firestore business/product persistence are implemented, but require service-account environment variables to run.
+Phase 4 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile, product management, and daily plan generation. The backend has health, current-user, business profile, product, and daily-plan routes. Firebase Admin verification and Firestore business/product persistence are implemented. Daily plan generation is deterministic for now and uses the same graph boundary where LangGraph nodes will be added later.
 
 ## Intended System Map
 
@@ -30,8 +30,7 @@ FastAPI Backend
   |       +--> Auth API: implemented
   |       +--> Business/Profile APIs: implemented
   |       +--> Product APIs: implemented
-  |       +--> Daily Plan API: scaffolded
-  |       +--> Product APIs: planned
+  |       +--> Daily Plan API: implemented
   |       +--> Content APIs: planned
   |       +--> Poster APIs: planned
   |       +--> Social APIs: planned
@@ -39,7 +38,7 @@ FastAPI Backend
   |       `--> Agent Log APIs: planned
   |
   +--> LangGraph Workflows
-  |       +--> Daily Marketing Graph: placeholder
+  |       +--> Daily Marketing Graph: deterministic implementation
   |       +--> SEO Graph
   |       +--> Analytics Recommendation Graph
   |       `--> Future Video Graph
@@ -184,31 +183,27 @@ Firestore + Storage save result
 Frontend displays post for approval
 ```
 
-Current scaffold behavior:
+Current daily plan behavior:
 
 ```text
 Frontend dashboard
   |
-  +--> Initializes Firebase web client
-  |
-  v
-GET /health
-  |
-  v
-FastAPI returns service status
-```
-
-```text
-Client
+  +--> Sends Firebase ID token
   |
   v
 POST /agent/run-daily-plan
   |
   v
-FastAPI calls placeholder daily marketing graph
+Backend verifies Firebase token
   |
   v
-Backend returns generated placeholder IDs and ready_for_review status
+Backend loads one business profile and products
+  |
+  v
+Product selection, content strategy, caption, hashtag, and prompt agents run
+  |
+  v
+Backend returns selected product, idea, caption, hashtags, and poster prompt
 ```
 
 ## Background Jobs

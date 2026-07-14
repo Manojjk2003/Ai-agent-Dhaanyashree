@@ -6,7 +6,7 @@ Update this file whenever an endpoint is added, removed, renamed, or its request
 
 ## Current State
 
-Phase 3 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs, product APIs, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. The daily-plan endpoint currently returns placeholder IDs from a placeholder graph rather than running real agents.
+Phase 4 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs, product APIs, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. The daily-plan endpoint reads the authenticated user's one business profile and products, then returns a deterministic generated marketing plan.
 
 ## API Inventory
 
@@ -21,7 +21,7 @@ Phase 3 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs
 | `GET` | `/products/{product_id}` | Read product details, implemented | Products page |
 | `PATCH` | `/products/{product_id}` | Update product, implemented | Products page |
 | `DELETE` | `/products/{product_id}` | Delete product, implemented | Products page |
-| `POST` | `/agent/run-daily-plan` | Generate placeholder daily marketing plan, implemented scaffold | Dashboard, future scheduler |
+| `POST` | `/agent/run-daily-plan` | Generate daily marketing plan from business profile and products | Dashboard, future scheduler |
 | `GET` | `/content/plans` | List content plans | Calendar |
 | `GET` | `/content/posts` | List generated posts | Generated Content page |
 | `PATCH` | `/content/posts/{post_id}` | Edit generated post | Generated Content page |
@@ -180,7 +180,6 @@ Current request:
 
 ```json
 {
-  "business_id": "business_123",
   "run_date": "2026-06-25",
   "platforms": ["instagram", "facebook"],
   "require_poster": true
@@ -196,11 +195,20 @@ Current response:
   "post_id": "post_123",
   "poster_id": "poster_123",
   "status": "ready_for_review",
-  "summary": "Daily marketing graph scaffold completed..."
+  "summary": "Generated an educational post for Ragi Malt using Dhaanyashree's business profile and product memory.",
+  "business_name": "Dhaanyashree",
+  "selected_product_id": "product_123",
+  "selected_product_name": "Ragi Malt",
+  "selection_reason": "Ragi Malt has the strongest product memory available right now; benefits: High calcium, Rich fiber",
+  "content_type": "Educational post",
+  "content_idea": "Show how Ragi Malt helps with high calcium in everyday life.",
+  "caption": "Make today's routine healthier with Ragi Malt...",
+  "hashtags": ["#RagiMalt", "#Breakfast", "#HealthyChoices"],
+  "poster_prompt": "Commercial social media poster for Dhaanyashree..."
 }
 ```
 
-Implementation note: the Python schema uses snake_case fields. A future frontend convention decision should decide whether to keep snake_case over the wire or add aliases for camelCase.
+Implementation note: the Python schema uses snake_case fields.
 
 ### `PATCH /content/posts/{post_id}`
 
