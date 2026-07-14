@@ -15,7 +15,7 @@ Whenever code, configuration, routes, APIs, database schema, agent behavior, dep
 
 The project is intended to become an AI Marketing Partner for small business owners. The system should understand the business, products, audience, brand tone, trends, content performance, and sales signals, then generate marketing actions such as captions, posters, reels, SEO ideas, calendar plans, and recommendations.
 
-Current repository state: Phase 8 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, one business profile form, product management, daily marketing plan generation, generated content review, manual content calendar scheduling, AI schedule time recommendation, a FastAPI backend with Firebase token verification plus business/product/content/schedule/agent routes, a Gemini-backed daily generation path with deterministic fallback, root environment/ignore/readme files, and project memory documents.
+Current repository state: Phase 10 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, one business profile form, product management, daily marketing plan generation, generated content review, manual content calendar scheduling, AI schedule time recommendation, poster image generation/preview, mock publish controls, a FastAPI backend with Firebase token verification plus business/product/content/schedule/poster/social/agent routes, Gemini-backed daily generation, Hugging Face FLUX/Gemini poster image generation paths with fallback SVG output, root environment/ignore/readme files, and project memory documents.
 
 Verified from repository: `git status` reports this is not a valid Git repository, even though a `.git` entry is present in the workspace.
 
@@ -67,7 +67,7 @@ Planned stack:
 - Storage: Firebase Storage
 - Background work: scheduler or worker process
 - Initial LLM providers: Gemini, OpenRouter, or Groq
-- Initial image generation: external image-generation API
+- Initial image generation: Hugging Face FLUX through Inference Providers, Gemini image generation, or fallback SVG
 - Video generation: later phase
 
 Actual detected stack:
@@ -389,6 +389,9 @@ Implemented APIs:
 - `POST /schedule/posts`
 - `POST /schedule/recommend-time`
 - `DELETE /schedule/posts/{scheduled_post_id}`
+- `GET /posters`
+- `POST /posters/generate`
+- `POST /social/publish-now`
 - `POST /agent/run-daily-plan`
 
 Full API status is documented in `api-map.md`.
@@ -492,7 +495,7 @@ Planned integrations:
 - Firestore
 - Firebase Storage
 - LLM provider: Gemini, OpenRouter, or Groq
-- Image generation provider
+- Image generation provider: `IMAGE_PROVIDER=huggingface`, `gemini`, or `fallback`
 - Instagram/Facebook publishing APIs
 - Future: Google Trends or approved trend data source
 - Future: YouTube Shorts publishing
@@ -503,7 +506,7 @@ Actual integrations:
 - Frontend Firebase client initialization exists for app, auth, Firestore, Storage, and Analytics.
 - Backend Firebase Admin token verification and business profile Firestore access are implemented, but require service-account environment variables.
 - Dependencies/config placeholders exist for LangGraph.
-- Gemini Interactions API integration exists in the backend LLM service and is used only server-side when `LLM_PROVIDER=gemini` and `GEMINI_API_KEY` are configured.
+- Gemini Interactions API integration exists in the backend LLM service and is used only server-side when `LLM_PROVIDER=gemini` and `GEMINI_API_KEY` are configured. Daily content and schedule recommendations use low thinking to reduce token usage; fallback still happens when Gemini returns quota/rate-limit errors such as HTTP 429.
 
 ## Feature Inventory
 
@@ -517,25 +520,25 @@ Status: business profile and product memory implemented.
 
 Purpose: generate one practical daily content package containing product, trend, strategy, caption, hashtags, image prompt, and poster.
 
-Status: Gemini-backed daily generation is implemented with deterministic fallback. Generated posts are saved for review. Content review can edit, approve, or reject/delete generated drafts. Approved drafts can be scheduled into the manual content calendar, with Gemini/fallback schedule time recommendations.
+Status: Gemini-backed daily generation is implemented with deterministic fallback. Generated posts are saved for review. Content review can edit, approve, reject/delete generated drafts, and generate poster images through Hugging Face FLUX, Gemini, or fallback SVG. Approved drafts can be scheduled into the manual content calendar, with Gemini/fallback schedule time recommendations.
 
 ### Poster Generation
 
 Purpose: convert product and campaign idea into a commercial poster.
 
-Status: planned MVP.
+Status: Hugging Face FLUX/Gemini/fallback poster generation is implemented.
 
 ### Content Calendar
 
 Purpose: organize generated posts into 7-day and 30-day plans.
 
-Status: planned MVP.
+Status: manual calendar scheduling plus AI schedule time recommendation is implemented.
 
 ### Social Publishing
 
 Purpose: publish or schedule approved content to social platforms.
 
-Status: planned after manual approval flow.
+Status: mock publishing is implemented. `POST /social/publish-now` marks scheduled content and the source generated post as `published`, stores a mock platform post id, and leaves real Meta/Instagram publishing for the next integration phase.
 
 ### SEO
 
@@ -651,13 +654,14 @@ Build in this order:
 1. Project scaffold.
 2. Firebase Auth and business profile.
 3. Product management.
-4. Daily content generation graph. Gemini-backed generation with deterministic fallback is implemented.
+4. Daily content generation graph. First deterministic version is implemented.
 5. Manual approval and generated content review. Current review version is implemented.
-6. Content calendar and scheduling. Current manual scheduling version is implemented.
-7. AI schedule time recommendation. Current Gemini/fallback recommendation version is implemented.
-8. Poster generation.
-9. Social scheduling.
-10. Analytics.
-11. Recommendations.
-12. SEO and blogs.
-13. Reels/video generation.
+6. Gemini-backed content generation. Current Gemini/fallback version is implemented.
+7. Content calendar and scheduling. Current manual scheduling version is implemented.
+8. AI schedule time recommendation. Current Gemini/fallback recommendation version is implemented.
+9. Poster generation. Current Hugging Face FLUX/Gemini/fallback image version is implemented.
+10. Social publishing foundation. Current mock publish version is implemented.
+11. Analytics.
+12. Recommendations.
+13. SEO and blogs.
+14. Reels/video generation.

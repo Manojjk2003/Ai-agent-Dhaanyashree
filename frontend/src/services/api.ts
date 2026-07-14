@@ -148,7 +148,34 @@ export type ScheduledPostResponse = {
   poster_prompt: string | null;
   platforms: string[];
   scheduled_at: string;
+  published_at: string | null;
+  platform_post_id: string | null;
+  error_message: string | null;
   status: "scheduled" | "published" | "cancelled" | "failed";
+  created_at: string;
+  updated_at: string;
+};
+
+export type PublishNowResponse = {
+  scheduled_post: ScheduledPostResponse;
+  provider: "mock" | "meta";
+  platform_post_id: string;
+  message: string;
+};
+
+export type GeneratedPosterResponse = {
+  poster_id: string;
+  business_id: string;
+  post_id: string;
+  product_id: string;
+  product_name: string;
+  prompt: string;
+  image_url: string;
+  storage_path: string;
+  mime_type: string;
+  provider: "gemini" | "huggingface" | "fallback";
+  error_message: string | null;
+  status: "generated";
   created_at: string;
   updated_at: string;
 };
@@ -238,6 +265,20 @@ export async function deleteGeneratedPost(token: string, postId: string) {
   });
 }
 
+export async function listGeneratedPosters(token: string) {
+  return request<GeneratedPosterResponse[]>("/posters", { token });
+}
+
+export async function generatePoster(token: string, postId: string) {
+  return request<GeneratedPosterResponse>("/posters/generate", {
+    token,
+    method: "POST",
+    body: {
+      post_id: postId,
+    },
+  });
+}
+
 export async function listScheduledPosts(token: string) {
   return request<ScheduledPostResponse[]>("/schedule/posts", { token });
 }
@@ -271,5 +312,18 @@ export async function deleteScheduledPost(
   return request<null>(`/schedule/posts/${scheduledPostId}`, {
     token,
     method: "DELETE",
+  });
+}
+
+export async function publishScheduledPostNow(
+  token: string,
+  scheduledPostId: string,
+) {
+  return request<PublishNowResponse>("/social/publish-now", {
+    token,
+    method: "POST",
+    body: {
+      scheduled_post_id: scheduledPostId,
+    },
   });
 }

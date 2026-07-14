@@ -6,7 +6,7 @@ Update this file whenever frontend pages, layouts, protected routes, backend rou
 
 ## Current State
 
-Phase 7 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products/content/calendar view switch without React Router. Backend has health, auth, business profile, product, generated content, schedule, and daily-plan endpoints.
+Phase 10 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products/content/calendar view switch without React Router. Backend has health, auth, business profile, product, generated content, schedule, poster, mock social publishing, and daily-plan endpoints.
 
 ## Planned Frontend Routes
 
@@ -55,9 +55,10 @@ Phase 7 scaffold routes exist. Frontend has an in-app auth-gated dashboard/busin
 | `POST` | `/schedule/posts` | Schedule approved generated content, implemented | Yes |
 | `POST` | `/schedule/recommend-time` | Recommend best posting time, implemented | Yes |
 | `DELETE` | `/schedule/posts/{scheduled_post_id}` | Cancel scheduled post, implemented | Yes |
-| `POST` | `/poster/generate` | Generate poster for post or prompt | Yes |
+| `GET` | `/posters` | List generated posters, implemented | Yes |
+| `POST` | `/posters/generate` | Generate poster for generated content, implemented | Yes |
 | `POST` | `/social/schedule` | Real social platform scheduling, future | Yes |
-| `POST` | `/social/publish-now` | Publish approved post immediately | Yes |
+| `POST` | `/social/publish-now` | Mock publish scheduled content immediately, implemented | Yes |
 | `GET` | `/analytics` | Fetch analytics summary | Yes |
 | `GET` | `/recommendations` | Fetch recommendations | Yes |
 | `GET` | `/agent/logs` | List agent logs | Yes |

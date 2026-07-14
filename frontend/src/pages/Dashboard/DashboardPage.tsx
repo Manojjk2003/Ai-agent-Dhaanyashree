@@ -24,7 +24,7 @@ type ApiStatus = "checking" | "online" | "offline";
 const nextActions = [
   "Review generated content in the Content tab",
   "Approve content, then schedule it in the Calendar tab",
-  "Add poster generation for approved content",
+  "Connect scheduled posts to real social publishing",
 ];
 
 export function DashboardPage() {

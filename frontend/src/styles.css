@@ -63,6 +63,21 @@ body {
   max-width: none;
 }
 
+.poster-preview {
+  border: 1px solid #dde4dc;
+  box-shadow: none;
+  max-width: 420px;
+  padding: 12px;
+}
+
+.poster-preview-image {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  display: block;
+  object-fit: cover;
+  width: 100%;
+}
+
 .dashboard {
   width: 100%;
 }

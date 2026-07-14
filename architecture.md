@@ -6,7 +6,7 @@ Update this file whenever system boundaries, services, agents, deployment shape,
 
 ## Current State
 
-Phase 8 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile, product management, daily plan generation, generated content review, manual content calendar, and AI schedule time recommendation. The backend has health, current-user, business profile, product, generated content, schedule, and daily-plan routes. Firebase Admin verification and Firestore business/product/generated-content/scheduled-content persistence are implemented. Daily plan generation and schedule recommendation try Gemini when configured and fall back to deterministic rules when Gemini is unavailable.
+Phase 10 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile, product management, daily plan generation, generated content review, manual content calendar, AI schedule time recommendation, poster generation/preview, and mock publish controls. The backend has health, current-user, business profile, product, generated content, schedule, poster, mock social publishing, and daily-plan routes. Firebase Admin verification and Firestore business/product/generated-content/scheduled-content/generated-poster persistence are implemented. Daily plan generation and schedule recommendation try Gemini when configured and fall back to deterministic generation when Gemini is unavailable. Poster generation now supports a separate image provider setting with Hugging Face FLUX, Gemini image generation, or local fallback SVG.
 
 ## Intended System Map
 
@@ -32,9 +32,9 @@ FastAPI Backend
   |       +--> Product APIs: implemented
   |       +--> Generated Content APIs: implemented
   |       +--> Schedule APIs: implemented
+  |       +--> Poster APIs: implemented
+  |       +--> Social APIs: mock publish implemented
   |       +--> Daily Plan API: implemented
-  |       +--> Poster APIs: planned
-  |       +--> Social APIs: planned
   |       +--> Analytics APIs: planned
   |       `--> Agent Log APIs: planned
   |
@@ -46,9 +46,9 @@ FastAPI Backend
   |
   +--> Services
   |       +--> LLM Service: Gemini Interactions API integration
-  |       +--> Image Service: placeholder
+  |       +--> Image Service: Hugging Face FLUX, Gemini image generation, plus fallback SVG
   |       +--> Firebase Service: placeholder
-  |       +--> Social Service: placeholder
+  |       +--> Social Service: mock publisher boundary
   |       `--> Scheduler Service: placeholder
   |
   v
@@ -245,6 +245,57 @@ Backend writes scheduled_posts document and marks generated post as scheduled
   |
   v
 Calendar screen shows manual scheduled queue
+```
+
+Current poster behavior:
+
+```text
+Content review screen
+  |
+  v
+User clicks Generate Poster
+  |
+  v
+Backend loads generated post and poster prompt
+  |
+  v
+Image service checks IMAGE_PROVIDER
+  |
+  +--> If Hugging Face FLUX succeeds, save generated image file
+  |
+  +--> If Gemini succeeds, save generated image file
+  |
+  `--> If provider fails, save fallback SVG poster with error_message
+  |
+  v
+Backend writes generated_posters metadata
+  |
+  v
+Frontend previews poster from /static/posters
+```
+
+Current social publish behavior:
+
+```text
+Calendar screen
+  |
+  v
+User clicks Publish Now on a scheduled post
+  |
+  v
+POST /social/publish-now
+  |
+  v
+Backend loads scheduled_posts document
+  |
+  v
+Social service records mock provider response
+  |
+  v
+Backend marks scheduled post and source generated post as published
+  |
+  v
+Calendar shows published timestamp and mock platform post id
 ```
 
 ## Background Jobs

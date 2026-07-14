@@ -6,7 +6,7 @@ Update this file whenever an endpoint is added, removed, renamed, or its request
 
 ## Current State
 
-Phase 7 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs, product APIs, generated content APIs, schedule APIs, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. The daily-plan endpoint reads the authenticated user's one business profile and products, tries Gemini-backed content generation when configured, falls back to deterministic generation when needed, and saves the generated content for review. Approved generated content can be scheduled into the manual calendar queue.
+Phase 10 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs, product APIs, generated content APIs, schedule APIs, poster APIs, mock social publish API, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. The daily-plan endpoint reads the authenticated user's one business profile and products, tries Gemini-backed content generation when configured, falls back to deterministic generation when needed, and saves the generated content for review. Approved generated content can be scheduled into the manual calendar queue. Poster generation can use Hugging Face FLUX, Gemini image generation, or fallback SVG output depending on backend image provider settings.
 
 ## API Inventory
 
@@ -31,9 +31,10 @@ Phase 7 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs
 | `POST` | `/schedule/posts` | Schedule approved generated content | Calendar page |
 | `POST` | `/schedule/recommend-time` | Recommend best time for approved generated content | Calendar page |
 | `DELETE` | `/schedule/posts/{scheduled_post_id}` | Cancel scheduled post and return source post to approved | Calendar page |
-| `POST` | `/poster/generate` | Generate poster | Posters page, daily workflow |
+| `GET` | `/posters` | List generated posters | Content Review |
+| `POST` | `/posters/generate` | Generate poster for generated content | Content Review |
 | `POST` | `/social/schedule` | Publish/schedule through real social platform API, future | Social page |
-| `POST` | `/social/publish-now` | Publish approved content | Social page |
+| `POST` | `/social/publish-now` | Mock publish scheduled content and mark it published | Calendar page |
 | `GET` | `/analytics` | Read performance summary | Dashboard, Analytics page |
 | `GET` | `/recommendations` | Read recommended actions | Dashboard |
 | `GET` | `/agent/logs` | List agent logs | Agent Logs page |
@@ -304,6 +305,9 @@ Response:
     "poster_prompt": "Bright kitchen counter...",
     "platforms": ["instagram"],
     "scheduled_at": "2026-07-15T10:00:00+05:30",
+    "published_at": null,
+    "platform_post_id": null,
+    "error_message": null,
     "status": "scheduled",
     "created_at": "2026-07-14T10:00:00+00:00",
     "updated_at": "2026-07-14T10:00:00+00:00"
@@ -362,6 +366,88 @@ Response:
 ```text
 204 No Content
 ```
+
+### `POST /social/publish-now`
+
+Purpose: publish a scheduled post now. Current MVP records a mock publish response and marks the schedule plus source generated post as `published`. Real Meta publishing can replace the mock adapter later without changing this API shape.
+
+Request:
+
+```json
+{
+  "scheduled_post_id": "scheduled_123"
+}
+```
+
+Response:
+
+```json
+{
+  "scheduled_post": {
+    "scheduled_post_id": "scheduled_123",
+    "business_id": "firebase_uid",
+    "post_id": "post_123",
+    "product_id": "product_123",
+    "product_name": "Ragi Malt",
+    "content_type": "Product Spotlight",
+    "caption": "Start your day with...",
+    "hashtags": ["#RagiMalt"],
+    "poster_prompt": "Bright kitchen counter...",
+    "platforms": ["instagram"],
+    "scheduled_at": "2026-07-15T10:00:00+05:30",
+    "published_at": "2026-07-14T10:00:00+00:00",
+    "platform_post_id": "mock_instagram_abc123",
+    "error_message": null,
+    "status": "published",
+    "created_at": "2026-07-14T10:00:00+00:00",
+    "updated_at": "2026-07-14T10:00:00+00:00"
+  },
+  "provider": "mock",
+  "platform_post_id": "mock_instagram_abc123",
+  "message": "Mock publish completed. Connect a real social account before enabling live publishing."
+}
+```
+
+### `GET /posters`
+
+Purpose: list generated poster metadata.
+
+Response:
+
+```json
+[
+  {
+    "poster_id": "poster_123",
+    "business_id": "firebase_uid",
+    "post_id": "post_123",
+    "product_id": "product_123",
+    "product_name": "Ragi Malt",
+    "prompt": "Commercial social media poster...",
+    "image_url": "http://localhost:8000/static/posters/poster_123.png",
+    "storage_path": "generated/posters/poster_123.png",
+    "mime_type": "image/png",
+    "provider": "huggingface",
+    "error_message": null,
+    "status": "generated",
+    "created_at": "2026-07-14T10:00:00+00:00",
+    "updated_at": "2026-07-14T10:00:00+00:00"
+  }
+]
+```
+
+### `POST /posters/generate`
+
+Purpose: generate a poster image from a generated post's poster prompt. The configured image provider is used when available. Supported providers are Hugging Face FLUX, Gemini image generation, and fallback SVG poster generation.
+
+Request:
+
+```json
+{
+  "post_id": "post_123"
+}
+```
+
+Response: same object as `GET /posters`.
 
 ## Error Handling Standard
 

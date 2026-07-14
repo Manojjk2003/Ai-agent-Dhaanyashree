@@ -27,6 +27,7 @@ pnpm-debug.log*
 # Generated assets
 uploads/
 generated/
+generated_assets/
 posters/
 videos/
 

@@ -39,6 +39,20 @@ class ScheduledPostResponse(BaseModel):
     poster_prompt: str | None = None
     platforms: list[str] = Field(default_factory=list)
     scheduled_at: str
+    published_at: str | None = None
+    platform_post_id: str | None = None
+    error_message: str | None = None
     status: ScheduledPostStatus = "scheduled"
     created_at: str
     updated_at: str
+
+
+class PublishNowRequest(BaseModel):
+    scheduled_post_id: str = Field(..., min_length=1)
+
+
+class PublishNowResponse(BaseModel):
+    scheduled_post: ScheduledPostResponse
+    provider: Literal["mock", "meta"] = "mock"
+    platform_post_id: str
+    message: str

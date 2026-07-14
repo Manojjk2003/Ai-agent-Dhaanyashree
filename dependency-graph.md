@@ -6,7 +6,7 @@ Update this file whenever important modules are added, removed, renamed, or thei
 
 ## Current State
 
-Phase 8 source files exist. This file tracks the current scaffold graph and the intended module dependency graph.
+Phase 9 source files exist. This file tracks the current scaffold graph and the intended module dependency graph.
 
 ## Current Backend Dependency Graph
 
@@ -19,6 +19,8 @@ backend/app/main.py
   -> backend/app/api/routes_content.py
   -> backend/app/api/routes_products.py
   -> backend/app/api/routes_schedule.py
+  -> backend/app/api/routes_posters.py
+  -> backend/app/api/routes_social.py
   -> backend/app/api/routes_agent.py
 
 backend/app/api/routes_health.py
@@ -53,6 +55,20 @@ backend/app/api/routes_schedule.py
   -> backend/app/services/firebase_service.py
   -> backend/app/services/llm_service.py
 
+backend/app/api/routes_posters.py
+  -> backend/app/dependencies.py
+  -> backend/app/schemas/auth.py
+  -> backend/app/schemas/generated_poster.py
+  -> backend/app/services/firebase_service.py
+  -> backend/app/services/image_service.py
+
+backend/app/api/routes_social.py
+  -> backend/app/dependencies.py
+  -> backend/app/schemas/auth.py
+  -> backend/app/schemas/scheduled_post.py
+  -> backend/app/services/firebase_service.py
+  -> backend/app/services/social_service.py
+
 backend/app/api/routes_agent.py
   -> backend/app/dependencies.py
   -> backend/app/graphs/daily_marketing_graph.py
@@ -79,6 +95,13 @@ backend/app/services/llm_service.py
   -> backend/app/schemas/scheduled_post.py
   -> Gemini Interactions API
 
+backend/app/services/image_service.py
+  -> backend/app/config.py
+  -> backend/app/schemas/generated_post.py
+  -> Hugging Face Inference Providers through huggingface_hub
+  -> Pillow for image object serialization
+  -> Gemini Interactions API
+
 backend/app/dependencies.py
   -> backend/app/services/firebase_service.py
   -> backend/app/schemas/auth.py
@@ -88,9 +111,15 @@ backend/app/services/firebase_service.py
   -> backend/app/schemas/auth.py
   -> backend/app/schemas/business.py
   -> backend/app/schemas/generated_post.py
+  -> backend/app/schemas/generated_poster.py
   -> backend/app/schemas/product.py
   -> backend/app/schemas/scheduled_post.py
+  -> backend/app/services/image_service.py
   -> Firebase Admin SDK
+
+backend/app/services/social_service.py
+  -> backend/app/schemas/scheduled_post.py
+  -> mock publisher adapter
 ```
 
 ## Current Frontend Dependency Graph
@@ -197,7 +226,7 @@ These files should be changed carefully once created:
 - `backend/app/graphs/daily_marketing_graph.py`: core MVP agent workflow placeholder. Created in Phase 1.
 - `backend/app/services/firebase_service.py`: database/storage integration.
 - `backend/app/services/llm_service.py`: model provider abstraction.
-- `backend/app/services/social_service.py`: publishing behavior.
+- `backend/app/services/social_service.py`: mock publishing behavior and future real social adapter boundary.
 - `frontend/src/app/`: frontend shell and theme. Created in Phase 1.
 - `frontend/src/lib/firebase.ts`: Firebase Web SDK initialization. Created after Firebase project config was supplied.
 - `frontend/src/services/api.ts`: frontend/backend API contract. Created in Phase 1.
@@ -244,5 +273,5 @@ Changes can affect brand safety and health claim accuracy.
 
 - Python syntax compilation passed with `python -m compileall backend\app`.
 - Backend runtime import was not completed in the global Python environment because installed FastAPI and Starlette versions are incompatible.
-- `backend/requirements.txt` pins Starlette for a clean virtualenv.
+- `backend/requirements.txt` pins Starlette for a clean virtualenv and includes `huggingface-hub` plus `pillow` for FLUX image generation through Hugging Face Inference Providers.
 - Node/npm were not available on PATH during this setup session, so frontend install/build was not run.

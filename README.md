@@ -72,7 +72,9 @@ Gemini-backed daily content generation can be enabled with:
 ```text
 LLM_PROVIDER=gemini
 GEMINI_MODEL=gemini-3.5-flash
+GEMINI_IMAGE_MODEL=gemini-3.1-flash-image
 GEMINI_API_KEY=<your-google-ai-studio-key>
+BACKEND_PUBLIC_URL=http://localhost:8000
 ```
 
 Create or view Gemini API keys from:
@@ -81,7 +83,25 @@ Create or view Gemini API keys from:
 https://aistudio.google.com/api-keys
 ```
 
-The backend keeps this key server-side and falls back to rule-based generation if Gemini is unavailable.
+The backend keeps this key server-side and falls back to rule-based text generation when Gemini is unavailable, returns invalid JSON, or hits quota/rate limits such as HTTP 429. Daily content and schedule recommendations request low thinking to reduce latency and token usage.
+
+Poster image generation can use Hugging Face FLUX with:
+
+```text
+IMAGE_PROVIDER=huggingface
+HF_IMAGE_MODEL=black-forest-labs/FLUX.1-schnell
+HF_TOKEN=<your-hugging-face-token>
+```
+
+Create a Hugging Face token from:
+
+```text
+https://huggingface.co/settings/tokens
+```
+
+The token needs permission to make Inference Providers calls. If the image provider is unavailable, the backend saves a fallback SVG poster and stores the fallback reason in Firestore.
+
+Social publishing is currently a safe mock workflow. The Calendar **Publish Now** button records a mock platform post id and marks the scheduled/generated post as published. It does not post to Instagram or Facebook until a real Meta publishing adapter is added.
 
 ## Frontend
 

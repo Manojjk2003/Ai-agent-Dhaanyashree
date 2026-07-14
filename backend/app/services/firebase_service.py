@@ -13,8 +13,10 @@ from app.schemas.generated_post import (
     GeneratedPostResponse,
     GeneratedPostUpdate,
 )
+from app.schemas.generated_poster import GeneratedPosterResponse
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
 from app.schemas.scheduled_post import ScheduledPostCreate, ScheduledPostResponse
+from app.services.image_service import PosterImage
 
 
 class FirebaseService:
@@ -343,6 +345,75 @@ class FirebaseService:
         self._generated_post_from_doc(user, existing)
         doc_ref.delete()
 
+    def _generated_posters_collection(self, user: CurrentUser):
+        db = self._ensure_db()
+        return db.collection("generated_posters")
+
+    def _generated_poster_from_doc(
+        self,
+        user: CurrentUser,
+        doc,
+    ) -> GeneratedPosterResponse:
+        data = doc.to_dict() or {}
+        if data.get("business_id") != user.uid:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Generated poster not found",
+            )
+
+        return GeneratedPosterResponse(
+            poster_id=doc.id,
+            business_id=data.get("business_id", user.uid),
+            post_id=data.get("post_id", ""),
+            product_id=data.get("product_id", ""),
+            product_name=data.get("product_name", ""),
+            prompt=data.get("prompt", ""),
+            image_url=data.get("image_url", ""),
+            storage_path=data.get("storage_path", ""),
+            mime_type=data.get("mime_type", ""),
+            provider=data.get("provider", "fallback"),
+            error_message=data.get("error_message"),
+            status=data.get("status", "generated"),
+            created_at=data.get("created_at", ""),
+            updated_at=data.get("updated_at", ""),
+        )
+
+    def list_generated_posters(self, user: CurrentUser) -> list[GeneratedPosterResponse]:
+        docs = (
+            self._generated_posters_collection(user)
+            .where(filter=FieldFilter("business_id", "==", user.uid))
+            .stream()
+        )
+        posters = [self._generated_poster_from_doc(user, doc) for doc in docs]
+        return sorted(posters, key=lambda poster: poster.created_at, reverse=True)
+
+    def create_generated_poster(
+        self,
+        user: CurrentUser,
+        generated_post: GeneratedPostResponse,
+        poster_image: PosterImage,
+    ) -> GeneratedPosterResponse:
+        now = datetime.now(UTC).isoformat()
+        payload = {
+            "business_id": user.uid,
+            "post_id": generated_post.post_id,
+            "product_id": generated_post.product_id,
+            "product_name": generated_post.product_name,
+            "prompt": generated_post.poster_prompt or generated_post.caption,
+            "image_url": poster_image.image_url,
+            "storage_path": poster_image.storage_path,
+            "mime_type": poster_image.mime_type,
+            "provider": poster_image.provider,
+            "error_message": poster_image.error_message,
+            "status": "generated",
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        doc_ref = self._generated_posters_collection(user).document()
+        doc_ref.set(payload)
+        return self._generated_poster_from_doc(user, doc_ref.get())
+
     def _scheduled_posts_collection(self, user: CurrentUser):
         db = self._ensure_db()
         return db.collection("scheduled_posts")
@@ -367,6 +438,9 @@ class FirebaseService:
             poster_prompt=data.get("poster_prompt"),
             platforms=data.get("platforms", []),
             scheduled_at=data.get("scheduled_at", ""),
+            published_at=data.get("published_at"),
+            platform_post_id=data.get("platform_post_id"),
+            error_message=data.get("error_message"),
             status=data.get("status", "scheduled"),
             created_at=data.get("created_at", ""),
             updated_at=data.get("updated_at", ""),
@@ -383,6 +457,21 @@ class FirebaseService:
             scheduled_posts,
             key=lambda scheduled_post: scheduled_post.scheduled_at,
         )
+
+    def get_scheduled_post(
+        self,
+        user: CurrentUser,
+        scheduled_post_id: str,
+    ) -> ScheduledPostResponse:
+        doc = self._scheduled_posts_collection(user).document(scheduled_post_id).get()
+
+        if not doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Scheduled post not found",
+            )
+
+        return self._scheduled_post_from_doc(user, doc)
 
     def create_scheduled_post(
         self,
@@ -410,6 +499,9 @@ class FirebaseService:
             "platforms": scheduled_post.platforms,
             "scheduled_at": scheduled_at,
             "status": "scheduled",
+            "published_at": None,
+            "platform_post_id": None,
+            "error_message": None,
             "created_at": now,
             "updated_at": now,
         }
@@ -440,6 +532,12 @@ class FirebaseService:
             )
 
         scheduled_post = self._scheduled_post_from_doc(user, existing)
+        if scheduled_post.status != "scheduled":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only scheduled posts can be cancelled",
+            )
+
         doc_ref.delete()
 
         generated_doc_ref = self._generated_posts_collection(user).document(
@@ -458,6 +556,93 @@ class FirebaseService:
                     },
                     merge=True,
                 )
+
+    def mark_scheduled_post_published(
+        self,
+        user: CurrentUser,
+        scheduled_post_id: str,
+        platform_post_id: str,
+    ) -> ScheduledPostResponse:
+        doc_ref = self._scheduled_posts_collection(user).document(scheduled_post_id)
+        existing = doc_ref.get()
+
+        if not existing.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Scheduled post not found",
+            )
+
+        scheduled_post = self._scheduled_post_from_doc(user, existing)
+        if scheduled_post.status == "published":
+            return scheduled_post
+
+        if scheduled_post.status != "scheduled":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only scheduled posts can be published",
+            )
+
+        now = datetime.now(UTC).isoformat()
+        doc_ref.set(
+            {
+                "status": "published",
+                "published_at": now,
+                "platform_post_id": platform_post_id,
+                "error_message": None,
+                "updated_at": now,
+            },
+            merge=True,
+        )
+
+        generated_doc_ref = self._generated_posts_collection(user).document(
+            scheduled_post.post_id,
+        )
+        generated_doc = generated_doc_ref.get()
+        if generated_doc.exists:
+            generated_data = generated_doc.to_dict() or {}
+            if generated_data.get("business_id") == user.uid:
+                generated_doc_ref.set(
+                    {
+                        "status": "published",
+                        "updated_at": now,
+                    },
+                    merge=True,
+                )
+
+        return self._scheduled_post_from_doc(user, doc_ref.get())
+
+    def mark_scheduled_post_failed(
+        self,
+        user: CurrentUser,
+        scheduled_post_id: str,
+        error_message: str,
+    ) -> ScheduledPostResponse:
+        doc_ref = self._scheduled_posts_collection(user).document(scheduled_post_id)
+        existing = doc_ref.get()
+
+        if not existing.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Scheduled post not found",
+            )
+
+        scheduled_post = self._scheduled_post_from_doc(user, existing)
+        if scheduled_post.status != "scheduled":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only scheduled posts can be marked failed",
+            )
+
+        now = datetime.now(UTC).isoformat()
+        doc_ref.set(
+            {
+                "status": "failed",
+                "error_message": error_message,
+                "updated_at": now,
+            },
+            merge=True,
+        )
+        return self._scheduled_post_from_doc(user, doc_ref.get())
 
 
 firebase_service = FirebaseService()

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -18,6 +18,7 @@ import {
   GeneratedPostResponse,
   listGeneratedPosts,
   listScheduledPosts,
+  publishScheduledPostNow,
   recommendScheduleTime,
   ScheduleRecommendationResponse,
   ScheduledPostResponse,
@@ -64,11 +65,13 @@ export function ContentCalendarPage() {
   const [scheduledAt, setScheduledAt] = useState(defaultScheduleTime());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [recommending, setRecommending] = useState(false);
   const [recommendation, setRecommendation] =
     useState<ScheduleRecommendationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [published, setPublished] = useState(false);
 
   const approvedPosts = useMemo(
     () => generatedPosts.filter((post) => post.status === "approved"),
@@ -79,6 +82,7 @@ export function ContentCalendarPage() {
     setSelectedPostId(postId);
     setRecommendation(null);
     setSaved(false);
+    setPublished(false);
     setError(null);
   }
 
@@ -132,6 +136,31 @@ export function ContentCalendarPage() {
       setError(exc instanceof Error ? exc.message : "Could not schedule content");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function publishNow(scheduledPostId: string) {
+    const shouldPublish = window.confirm(
+      "Publish this scheduled post now? This MVP records a mock publish only.",
+    );
+    if (!shouldPublish) {
+      return;
+    }
+
+    setPublishing(true);
+    setSaved(false);
+    setPublished(false);
+    setError(null);
+
+    try {
+      const token = await getIdToken();
+      await publishScheduledPostNow(token, scheduledPostId);
+      setPublished(true);
+      await loadCalendar();
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "Could not publish post");
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -200,6 +229,7 @@ export function ContentCalendarPage() {
 
       {error ? <Alert severity="error">{error}</Alert> : null}
       {saved ? <Alert severity="success">Content scheduled.</Alert> : null}
+      {published ? <Alert severity="success">Mock publish recorded.</Alert> : null}
       {loading ? <Alert severity="info">Loading calendar...</Alert> : null}
 
       <Grid container spacing={2}>
@@ -315,17 +345,39 @@ export function ContentCalendarPage() {
                       <Chip label={post.status} size="small" />
                     </Stack>
                     <Typography color="text.secondary">
-                      {displayDate(post.scheduled_at)} · {post.platforms.join(", ")}
+                      {displayDate(post.scheduled_at)} - {post.platforms.join(", ")}
                     </Typography>
+                    {post.published_at ? (
+                      <Typography color="text.secondary">
+                        Published {displayDate(post.published_at)}
+                        {post.platform_post_id
+                          ? ` - ${post.platform_post_id}`
+                          : ""}
+                      </Typography>
+                    ) : null}
+                    {post.error_message ? (
+                      <Alert severity="error">{post.error_message}</Alert>
+                    ) : null}
                     <Typography>{post.caption}</Typography>
-                    <Button
-                      color="error"
-                      disabled={saving}
-                      onClick={() => cancelScheduledPost(post.scheduled_post_id)}
-                      variant="text"
-                    >
-                      Cancel Schedule
-                    </Button>
+                    {post.status === "scheduled" ? (
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          disabled={publishing || saving}
+                          onClick={() => publishNow(post.scheduled_post_id)}
+                          variant="contained"
+                        >
+                          {publishing ? "Publishing..." : "Publish Now"}
+                        </Button>
+                        <Button
+                          color="error"
+                          disabled={saving || publishing}
+                          onClick={() => cancelScheduledPost(post.scheduled_post_id)}
+                          variant="text"
+                        >
+                          Cancel Schedule
+                        </Button>
+                      </Stack>
+                    ) : null}
                   </Stack>
                 </Paper>
               ))}

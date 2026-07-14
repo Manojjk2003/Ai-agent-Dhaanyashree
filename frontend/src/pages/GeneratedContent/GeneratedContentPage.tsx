@@ -14,8 +14,11 @@ import {
 import { useAuth } from "../../auth/AuthContext";
 import {
   deleteGeneratedPost,
+  generatePoster,
   GeneratedPostResponse,
+  GeneratedPosterResponse,
   GeneratedPostStatus,
+  listGeneratedPosters,
   listGeneratedPosts,
   updateGeneratedPost,
 } from "../../services/api";
@@ -31,6 +34,7 @@ function splitList(value: string) {
 export function GeneratedContentPage() {
   const { getIdToken } = useAuth();
   const [posts, setPosts] = useState<GeneratedPostResponse[]>([]);
+  const [posters, setPosters] = useState<GeneratedPosterResponse[]>([]);
   const [selected, setSelected] = useState<GeneratedPostResponse | null>(null);
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState("");
@@ -38,9 +42,11 @@ export function GeneratedContentPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [generatingPoster, setGeneratingPoster] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [posterGenerated, setPosterGenerated] = useState(false);
 
   async function loadPosts() {
     setError(null);
@@ -48,8 +54,12 @@ export function GeneratedContentPage() {
 
     try {
       const token = await getIdToken();
-      const loadedPosts = await listGeneratedPosts(token);
+      const [loadedPosts, loadedPosters] = await Promise.all([
+        listGeneratedPosts(token),
+        listGeneratedPosters(token),
+      ]);
       setPosts(loadedPosts);
+      setPosters(loadedPosters);
 
       if (!selected && loadedPosts.length) {
         selectPost(loadedPosts[0]);
@@ -68,6 +78,7 @@ export function GeneratedContentPage() {
     setPosterPrompt(post.poster_prompt ?? "");
     setSaved(false);
     setDeleted(false);
+    setPosterGenerated(false);
     setError(null);
   }
 
@@ -148,10 +159,50 @@ export function GeneratedContentPage() {
     }
   }
 
+  async function generateSelectedPoster() {
+    if (!selected) {
+      return;
+    }
+
+    setGeneratingPoster(true);
+    setPosterGenerated(false);
+    setSaved(false);
+    setError(null);
+
+    try {
+      const token = await getIdToken();
+      const updated = await updateGeneratedPost(token, selected.post_id, {
+        caption,
+        hashtags: splitList(hashtags),
+        poster_prompt: posterPrompt,
+        status: selected.status,
+      });
+      const poster = await generatePoster(token, updated.post_id);
+
+      setPosts((current) =>
+        current.map((post) => (post.post_id === updated.post_id ? updated : post)),
+      );
+      setPosters((current) => [
+        poster,
+        ...current.filter((item) => item.poster_id !== poster.poster_id),
+      ]);
+      selectPost(updated);
+      setPosterGenerated(true);
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "Could not generate poster");
+    } finally {
+      setGeneratingPoster(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await savePost();
   }
+
+  const selectedPoster = selected
+    ? posters.find((poster) => poster.post_id === selected.post_id)
+    : null;
 
   return (
     <Stack spacing={3} className="dashboard">
@@ -172,6 +223,7 @@ export function GeneratedContentPage() {
       {error ? <Alert severity="error">{error}</Alert> : null}
       {saved ? <Alert severity="success">Generated content saved.</Alert> : null}
       {deleted ? <Alert severity="success">Generated content deleted.</Alert> : null}
+      {posterGenerated ? <Alert severity="success">Poster generated.</Alert> : null}
       {loading ? <Alert severity="info">Loading generated content...</Alert> : null}
 
       <Grid container spacing={2}>
@@ -272,6 +324,43 @@ export function GeneratedContentPage() {
                   >
                     {deleting ? "Deleting..." : "Reject and Delete"}
                   </Button>
+                </Stack>
+                <Stack spacing={2}>
+                  <Button
+                    disabled={saving || deleting || generatingPoster}
+                    onClick={generateSelectedPoster}
+                    variant="outlined"
+                  >
+                    {generatingPoster ? "Generating Poster..." : "Generate Poster"}
+                  </Button>
+                  {selectedPoster ? (
+                    <Paper className="poster-preview">
+                      <Stack spacing={1}>
+                        <img
+                          alt={`${selectedPoster.product_name} generated poster`}
+                          className="poster-preview-image"
+                          src={selectedPoster.image_url}
+                        />
+                        <Chip
+                          label={
+                            selectedPoster.provider === "huggingface"
+                              ? "Generated with Hugging Face FLUX"
+                              : selectedPoster.provider === "gemini"
+                                ? "Generated with Gemini image"
+                                : "Generated with fallback poster"
+                          }
+                          size="small"
+                          sx={{ alignSelf: "flex-start" }}
+                        />
+                        {selectedPoster.provider === "fallback" &&
+                        selectedPoster.error_message ? (
+                          <Alert severity="warning">
+                            Image API fallback: {selectedPoster.error_message}
+                          </Alert>
+                        ) : null}
+                      </Stack>
+                    </Paper>
+                  ) : null}
                 </Stack>
               </Stack>
             ) : (

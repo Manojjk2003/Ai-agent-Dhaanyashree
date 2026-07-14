@@ -55,6 +55,7 @@ def generate_marketing_content(
         "input": prompt,
         "generation_config": {
             "temperature": 0.7,
+            "thinking_level": "low",
         },
     }
 
@@ -102,6 +103,7 @@ def recommend_schedule_time(
         "input": prompt,
         "generation_config": {
             "temperature": 0.4,
+            "thinking_level": "low",
         },
     }
 

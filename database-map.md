@@ -190,15 +190,28 @@ Purpose: poster metadata and storage references.
 
 Fields:
 
-- `businessId`
-- `postId`
+- `business_id`
+- `post_id`
+- `product_id`
+- `product_name`
 - `prompt`
-- `storagePath`
-- `publicUrl`
+- `storage_path`
+- `image_url`
+- `mime_type`
 - `provider`
+- `error_message`
 - `status`
-- `createdByRunId`
-- `createdAt`
+- `created_at`
+- `updated_at`
+
+Current implementation detail:
+
+- Document path: `generated_posters/{posterId}`
+- Each generated poster stores `business_id` to link it to the user's one business profile.
+- Poster image files are saved locally under `generated/posters` and served by FastAPI at `/static/posters`.
+- `provider` is `huggingface` when Hugging Face FLUX image generation succeeds, `gemini` when Gemini image generation succeeds, and `fallback` when the local SVG poster generator is used.
+- `error_message` stores the image provider failure reason when the backend falls back to SVG.
+- Later phase should move binary poster files to Firebase Storage and keep Firestore metadata stable.
 
 ### `generated_videos`
 
@@ -278,6 +291,8 @@ Current implementation detail:
 - Each scheduled post stores `business_id` and a content snapshot from the approved generated post.
 - Creating a scheduled post sets the source generated post status to `scheduled` and adds `scheduled_post_id` plus `scheduled_at`.
 - Cancelling a scheduled post deletes the schedule document and returns the source generated post status to `approved`.
+- Mock publishing sets `status` to `published`, stores `published_at` and `platform_post_id`, clears `error_message`, and marks the source generated post as `published`.
+- Failed mock or future live publishing attempts can set `status` to `failed` and store `error_message`.
 
 ### `analytics`
 

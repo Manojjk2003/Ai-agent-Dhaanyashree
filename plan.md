@@ -1,3 +1,82 @@
+## Phase 10 Setup Status
+
+Status: mock social publishing foundation created.
+
+Created:
+
+- `backend/app/api/routes_social.py` protected social publishing API.
+- `backend/app/services/social_service.py` mock publisher adapter boundary.
+- `POST /social/publish-now` for scheduled posts.
+- Scheduled post publish metadata: `published_at`, `platform_post_id`, and `error_message`.
+- Firestore workflow that marks `scheduled_posts/{scheduledPostId}` and the source `generated_posts/{postId}` as `published`.
+- Calendar UI **Publish Now** action for scheduled posts.
+- Calendar UI published timestamp, mock platform post id, and publish error display.
+
+Implemented backend routes:
+
+- `POST /social/publish-now`.
+
+Publishing workflow:
+
+```text
+Content tab
+  -> Approve generated content
+  -> Calendar tab
+  -> Schedule approved post
+  -> Publish Now
+  -> Mock social publisher returns platform_post_id
+  -> scheduled_posts and generated_posts are marked published
+```
+
+Next phase:
+
+- Connect real Meta/Instagram/Facebook publishing credentials.
+- Add social account connection records.
+- Move from manual publish button to background scheduled publishing.
+
+## Phase 9 Setup Status
+
+Status: poster image generation created and Hugging Face FLUX provider support added.
+
+Created:
+
+- `backend/app/schemas/generated_poster.py` generated poster schemas.
+- `backend/app/api/routes_posters.py` protected poster APIs.
+- `backend/app/services/image_service.py` Hugging Face FLUX, Gemini image generation, plus fallback SVG poster generation.
+- Static poster serving from repo-level `generated/posters` through `/static/posters`.
+- Firestore generated poster metadata in top-level `generated_posters/{posterId}` documents linked by `business_id`.
+- Content Review **Generate Poster** button.
+- Content Review poster preview for the selected generated post.
+
+Implemented backend routes:
+
+- `GET /posters`.
+- `POST /posters/generate`.
+
+Poster workflow:
+
+```text
+Content tab
+  -> Edit or approve generated content
+  -> Generate Poster
+  -> Hugging Face FLUX or Gemini image model creates poster, or fallback SVG is created
+  -> Save poster metadata to generated_posters
+  -> Preview poster in Content Review
+```
+
+Provider setup:
+
+```text
+IMAGE_PROVIDER=huggingface
+HF_IMAGE_MODEL=black-forest-labs/FLUX.1-schnell
+HF_TOKEN=<your-hugging-face-token>
+```
+
+Next phase:
+
+- Mock social publishing foundation. Implemented in Phase 10.
+- Later move poster binary storage from local `generated/posters` to Firebase Storage.
+
 ## Phase 8 Setup Status
 
 Status: AI schedule time recommendation created.
@@ -28,7 +107,7 @@ Calendar tab
 
 Next phase:
 
-- Add poster image generation for approved or scheduled content.
+- Poster image generation. Implemented in Phase 9.
 - Later connect scheduled posts to real social publishing APIs.
 
 ## Phase 7 Setup Status
@@ -348,7 +427,7 @@ POST /business/profile
 POST /products
 POST /agent/run-daily-plan
 POST /content/generate
-POST /poster/generate
+POST /posters/generate
 POST /social/schedule
 GET  /analytics
 GET  /recommendations

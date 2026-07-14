@@ -10,9 +10,14 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 class Settings(BaseSettings):
     app_env: str = "development"
     cors_origins_raw: str = "http://localhost:5173"
+    backend_public_url: str = "http://localhost:8000"
     llm_provider: str = "mock"
+    image_provider: str = "fallback"
     gemini_model: str = "gemini-3.5-flash"
+    gemini_image_model: str = "gemini-3.1-flash-image"
     gemini_api_key: str | None = None
+    hf_token: str | None = None
+    hf_image_model: str = "black-forest-labs/FLUX.1-schnell"
     openrouter_api_key: str | None = None
     groq_api_key: str | None = None
     firebase_project_id: str | None = None
