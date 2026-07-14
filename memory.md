@@ -15,7 +15,7 @@ Whenever code, configuration, routes, APIs, database schema, agent behavior, dep
 
 The project is intended to become an AI Marketing Partner for small business owners. The system should understand the business, products, audience, brand tone, trends, content performance, and sales signals, then generate marketing actions such as captions, posters, reels, SEO ideas, calendar plans, and recommendations.
 
-Current repository state: Phase 4 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, one business profile form, product management, daily marketing plan generation, a FastAPI backend with Firebase token verification plus business/product/agent routes, a deterministic LangGraph-boundary workflow, root environment/ignore/readme files, and project memory documents.
+Current repository state: Phase 8 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, one business profile form, product management, daily marketing plan generation, generated content review, manual content calendar scheduling, AI schedule time recommendation, a FastAPI backend with Firebase token verification plus business/product/content/schedule/agent routes, a Gemini-backed daily generation path with deterministic fallback, root environment/ignore/readme files, and project memory documents.
 
 Verified from repository: `git status` reports this is not a valid Git repository, even though a `.git` entry is present in the workspace.
 
@@ -30,6 +30,8 @@ User account
   -> One business profile
       -> Many products
 ```
+
+Firestore uses one `businesses/{firebase_uid}` profile document, plus top-level `products` and `generated_posts` collections linked by `business_id`.
 
 The intended product gives the owner a single dashboard that answers:
 
@@ -72,8 +74,8 @@ Actual detected stack:
 
 - Frontend: React, Vite, TypeScript, Material UI, lucide-react
 - Backend: FastAPI, Pydantic Settings
-- Agent orchestration: LangGraph dependency declared; `backend/app/graphs/daily_marketing_graph.py` currently runs a deterministic graph-boundary workflow that will later be replaced with real LangGraph nodes
-- Database/storage/auth: Firebase frontend client initialization and Auth UI exist. Backend Firebase Admin token verification and business profile/product Firestore persistence are implemented, but require service-account environment variables. Storage usage is not implemented yet.
+- Agent orchestration: LangGraph dependency declared; `backend/app/graphs/daily_marketing_graph.py` currently runs a graph-boundary workflow that tries Gemini-backed content generation and falls back to deterministic local agents
+- Database/storage/auth: Firebase frontend client initialization and Auth UI exist. Backend Firebase Admin token verification and business profile/product/generated-post Firestore persistence are implemented, but require service-account environment variables. Storage usage is not implemented yet.
 
 ## Repository Structure
 
@@ -262,6 +264,8 @@ Actual frontend architecture:
 - Login page: `frontend/src/pages/Login/LoginPage.tsx`
 - Business profile page: `frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx`
 - Products page: `frontend/src/pages/Products/ProductsPage.tsx`
+- Generated content page: `frontend/src/pages/GeneratedContent/GeneratedContentPage.tsx`
+- Content calendar page: `frontend/src/pages/ContentCalendar/ContentCalendarPage.tsx`
 - API helper: `frontend/src/services/api.ts`
 - The dashboard checks `GET /health` and displays API online/offline status.
 - Firebase app/auth/firestore/storage/analytics clients are initialized from Vite environment variables.
@@ -328,7 +332,7 @@ Detailed schema is documented in `database-map.md`.
 
 Actual database implementation:
 
-- Business profile and product Firestore read/write exists in `backend/app/services/firebase_service.py`.
+- Business profile, product, and generated-post Firestore read/write exists in `backend/app/services/firebase_service.py`.
 - Firebase frontend environment variables exist in `.env.example`; local values are stored in ignored `frontend/.env.local`.
 - `frontend/.env.example` documents the Vite Firebase variables used when running from the frontend directory.
 - Backend Firebase Admin supports `FIREBASE_SERVICE_ACCOUNT_FILE` or inline `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`.
@@ -377,6 +381,14 @@ Implemented APIs:
 - `GET /products/{product_id}`
 - `PATCH /products/{product_id}`
 - `DELETE /products/{product_id}`
+- `GET /content/posts`
+- `GET /content/posts/{post_id}`
+- `PATCH /content/posts/{post_id}`
+- `DELETE /content/posts/{post_id}`
+- `GET /schedule/posts`
+- `POST /schedule/posts`
+- `POST /schedule/recommend-time`
+- `DELETE /schedule/posts/{scheduled_post_id}`
 - `POST /agent/run-daily-plan`
 
 Full API status is documented in `api-map.md`.
@@ -459,6 +471,7 @@ Planned environment variables:
 - `VITE_FIREBASE_APP_ID`
 - `VITE_FIREBASE_MEASUREMENT_ID`
 - `LLM_PROVIDER`
+- `GEMINI_MODEL`
 - `GEMINI_API_KEY`
 - `OPENROUTER_API_KEY`
 - `GROQ_API_KEY`
@@ -490,6 +503,7 @@ Actual integrations:
 - Frontend Firebase client initialization exists for app, auth, Firestore, Storage, and Analytics.
 - Backend Firebase Admin token verification and business profile Firestore access are implemented, but require service-account environment variables.
 - Dependencies/config placeholders exist for LangGraph.
+- Gemini Interactions API integration exists in the backend LLM service and is used only server-side when `LLM_PROVIDER=gemini` and `GEMINI_API_KEY` are configured.
 
 ## Feature Inventory
 
@@ -503,7 +517,7 @@ Status: business profile and product memory implemented.
 
 Purpose: generate one practical daily content package containing product, trend, strategy, caption, hashtags, image prompt, and poster.
 
-Status: planned MVP.
+Status: Gemini-backed daily generation is implemented with deterministic fallback. Generated posts are saved for review. Content review can edit, approve, or reject/delete generated drafts. Approved drafts can be scheduled into the manual content calendar, with Gemini/fallback schedule time recommendations.
 
 ### Poster Generation
 
@@ -583,7 +597,7 @@ Current debt:
 
 - Firebase Admin credentials are not present in the workspace, so protected backend routes need `FIREBASE_SERVICE_ACCOUNT_FILE` or inline service-account environment setup before runtime testing.
 - Firebase Authentication must be initialized in Firebase Console and Email/Password sign-in must be enabled before the frontend login screen can create accounts.
-- LangGraph dependency is declared, but the daily graph is currently a deterministic graph-boundary function rather than full LangGraph nodes.
+- LangGraph dependency is declared, but the daily graph is currently a graph-boundary function rather than full LangGraph nodes.
 - Frontend routing is not implemented yet.
 - Dependencies have not been installed in this work session.
 - Local verification found Python available, but Node/npm are not on PATH.
@@ -637,11 +651,13 @@ Build in this order:
 1. Project scaffold.
 2. Firebase Auth and business profile.
 3. Product management.
-4. Daily content generation graph. Current deterministic version is implemented.
-5. Poster generation.
-6. Manual approval and content calendar.
-7. Social scheduling.
-8. Analytics.
-9. Recommendations.
-10. SEO and blogs.
-11. Reels/video generation.
+4. Daily content generation graph. Gemini-backed generation with deterministic fallback is implemented.
+5. Manual approval and generated content review. Current review version is implemented.
+6. Content calendar and scheduling. Current manual scheduling version is implemented.
+7. AI schedule time recommendation. Current Gemini/fallback recommendation version is implemented.
+8. Poster generation.
+9. Social scheduling.
+10. Analytics.
+11. Recommendations.
+12. SEO and blogs.
+13. Reels/video generation.

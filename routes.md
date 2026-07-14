@@ -6,7 +6,7 @@ Update this file whenever frontend pages, layouts, protected routes, backend rou
 
 ## Current State
 
-Phase 4 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products view switch without React Router. Backend has health, auth, business profile, product, and daily-plan endpoints.
+Phase 7 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products/content/calendar view switch without React Router. Backend has health, auth, business profile, product, generated content, schedule, and daily-plan endpoints.
 
 ## Planned Frontend Routes
 
@@ -16,12 +16,14 @@ Phase 4 scaffold routes exist. Frontend has an in-app auth-gated dashboard/busin
 | Dashboard view | `frontend/src/pages/Dashboard/DashboardPage.tsx` | Main dashboard shell | Yes |
 | Business view | `frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx` | Business profile, audience, goals, brand tone | Yes |
 | Products view | `frontend/src/pages/Products/ProductsPage.tsx` | Product memory management | Yes |
+| Content view | `frontend/src/pages/GeneratedContent/GeneratedContentPage.tsx` | Review generated captions, hashtags, and poster prompts | Yes |
+| Calendar view | `frontend/src/pages/ContentCalendar/ContentCalendarPage.tsx` | Schedule approved generated content | Yes |
 | `/login` | `frontend/src/pages/Login/` | Future React Router login route | No |
 | `/` | `frontend/src/pages/Dashboard/` | Future React Router dashboard route | Yes |
 | `/business` | `frontend/src/pages/BusinessProfile/` | Future React Router business profile route | Yes |
 | `/products` | `frontend/src/pages/Products/` | Future React Router product route | Yes |
 | `/calendar` | `frontend/src/pages/ContentCalendar/` | Content calendar and scheduling | Yes |
-| `/content` | `frontend/src/pages/GeneratedContent/` | Generated captions, hashtags, and post drafts | Yes |
+| `/content` | `frontend/src/pages/GeneratedContent/` | Future React Router generated content route | Yes |
 | `/posters` | `frontend/src/pages/Posters/` | Generated poster gallery and editor/review screen | Yes |
 | `/seo` | `frontend/src/pages/SEO/` | Keywords, blog topics, FAQs, metadata | Yes |
 | `/social` | `frontend/src/pages/SocialMedia/` | Social accounts, publishing, scheduling | Yes |
@@ -45,10 +47,16 @@ Phase 4 scaffold routes exist. Frontend has an in-app auth-gated dashboard/busin
 | `DELETE` | `/products/{product_id}` | Delete product, implemented | Yes |
 | `POST` | `/agent/run-daily-plan` | Generate daily marketing plan from one business profile and products, implemented | Yes |
 | `GET` | `/content/plans` | List content plans | Yes |
-| `GET` | `/content/posts` | List generated posts | Yes |
-| `PATCH` | `/content/posts/{post_id}` | Edit generated post | Yes |
+| `GET` | `/content/posts` | List generated posts, implemented | Yes |
+| `GET` | `/content/posts/{post_id}` | Read generated post, implemented | Yes |
+| `PATCH` | `/content/posts/{post_id}` | Edit generated post and review status, implemented | Yes |
+| `DELETE` | `/content/posts/{post_id}` | Reject and delete generated post, implemented | Yes |
+| `GET` | `/schedule/posts` | List scheduled posts, implemented | Yes |
+| `POST` | `/schedule/posts` | Schedule approved generated content, implemented | Yes |
+| `POST` | `/schedule/recommend-time` | Recommend best posting time, implemented | Yes |
+| `DELETE` | `/schedule/posts/{scheduled_post_id}` | Cancel scheduled post, implemented | Yes |
 | `POST` | `/poster/generate` | Generate poster for post or prompt | Yes |
-| `POST` | `/social/schedule` | Schedule approved post | Yes |
+| `POST` | `/social/schedule` | Real social platform scheduling, future | Yes |
 | `POST` | `/social/publish-now` | Publish approved post immediately | Yes |
 | `GET` | `/analytics` | Fetch analytics summary | Yes |
 | `GET` | `/recommendations` | Fetch recommendations | Yes |

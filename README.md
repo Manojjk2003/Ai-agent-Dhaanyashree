@@ -5,6 +5,7 @@ AI Marketing Partner is planned as a dashboard and agent system for small busine
 - React + Vite frontend in `frontend/`
 - FastAPI backend in `backend/`
 - LangGraph workflow location in `backend/app/graphs/`
+- Manual content review and calendar scheduling
 - Project memory and architecture docs at the root
 
 ## Project Layout
@@ -65,6 +66,22 @@ FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
 FIREBASE_STORAGE_BUCKET=
 ```
+
+Gemini-backed daily content generation can be enabled with:
+
+```text
+LLM_PROVIDER=gemini
+GEMINI_MODEL=gemini-3.5-flash
+GEMINI_API_KEY=<your-google-ai-studio-key>
+```
+
+Create or view Gemini API keys from:
+
+```text
+https://aistudio.google.com/api-keys
+```
+
+The backend keeps this key server-side and falls back to rule-based generation if Gemini is unavailable.
 
 ## Frontend
 

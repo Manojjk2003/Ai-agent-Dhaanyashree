@@ -6,7 +6,7 @@ Update this file whenever important modules are added, removed, renamed, or thei
 
 ## Current State
 
-Phase 4 source files exist. This file tracks the current scaffold graph and the intended module dependency graph.
+Phase 8 source files exist. This file tracks the current scaffold graph and the intended module dependency graph.
 
 ## Current Backend Dependency Graph
 
@@ -16,7 +16,9 @@ backend/app/main.py
   -> backend/app/api/routes_health.py
   -> backend/app/api/routes_auth.py
   -> backend/app/api/routes_business.py
+  -> backend/app/api/routes_content.py
   -> backend/app/api/routes_products.py
+  -> backend/app/api/routes_schedule.py
   -> backend/app/api/routes_agent.py
 
 backend/app/api/routes_health.py
@@ -38,11 +40,25 @@ backend/app/api/routes_products.py
   -> backend/app/schemas/product.py
   -> backend/app/services/firebase_service.py
 
+backend/app/api/routes_content.py
+  -> backend/app/dependencies.py
+  -> backend/app/schemas/auth.py
+  -> backend/app/schemas/generated_post.py
+  -> backend/app/services/firebase_service.py
+
+backend/app/api/routes_schedule.py
+  -> backend/app/dependencies.py
+  -> backend/app/schemas/auth.py
+  -> backend/app/schemas/scheduled_post.py
+  -> backend/app/services/firebase_service.py
+  -> backend/app/services/llm_service.py
+
 backend/app/api/routes_agent.py
   -> backend/app/dependencies.py
   -> backend/app/graphs/daily_marketing_graph.py
   -> backend/app/schemas/agent.py
   -> backend/app/schemas/auth.py
+  -> backend/app/schemas/generated_post.py
   -> backend/app/services/firebase_service.py
 
 backend/app/graphs/daily_marketing_graph.py
@@ -53,6 +69,15 @@ backend/app/graphs/daily_marketing_graph.py
   -> backend/app/schemas/agent.py
   -> backend/app/schemas/auth.py
   -> backend/app/services/firebase_service.py
+  -> backend/app/services/llm_service.py
+
+backend/app/services/llm_service.py
+  -> backend/app/config.py
+  -> backend/app/schemas/business.py
+  -> backend/app/schemas/generated_post.py
+  -> backend/app/schemas/product.py
+  -> backend/app/schemas/scheduled_post.py
+  -> Gemini Interactions API
 
 backend/app/dependencies.py
   -> backend/app/services/firebase_service.py
@@ -62,7 +87,9 @@ backend/app/services/firebase_service.py
   -> backend/app/config.py
   -> backend/app/schemas/auth.py
   -> backend/app/schemas/business.py
+  -> backend/app/schemas/generated_post.py
   -> backend/app/schemas/product.py
+  -> backend/app/schemas/scheduled_post.py
   -> Firebase Admin SDK
 ```
 
@@ -78,12 +105,22 @@ frontend/src/main.tsx
 
 frontend/src/app/App.tsx
   -> frontend/src/auth/AuthContext.tsx
+  -> frontend/src/pages/ContentCalendar/ContentCalendarPage.tsx
   -> frontend/src/pages/Dashboard/DashboardPage.tsx
   -> frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx
+  -> frontend/src/pages/GeneratedContent/GeneratedContentPage.tsx
   -> frontend/src/pages/Login/LoginPage.tsx
   -> frontend/src/pages/Products/ProductsPage.tsx
 
 frontend/src/pages/Dashboard/DashboardPage.tsx
+  -> frontend/src/auth/AuthContext.tsx
+  -> frontend/src/services/api.ts
+
+frontend/src/pages/GeneratedContent/GeneratedContentPage.tsx
+  -> frontend/src/auth/AuthContext.tsx
+  -> frontend/src/services/api.ts
+
+frontend/src/pages/ContentCalendar/ContentCalendarPage.tsx
   -> frontend/src/auth/AuthContext.tsx
   -> frontend/src/services/api.ts
 

@@ -4,8 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes_agent import router as agent_router
 from app.api.routes_auth import router as auth_router
 from app.api.routes_business import router as business_router
+from app.api.routes_content import router as content_router
 from app.api.routes_health import router as health_router
 from app.api.routes_products import router as products_router
+from app.api.routes_schedule import router as schedule_router
 from app.config import settings
 
 
@@ -33,6 +35,8 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(business_router)
     app.include_router(products_router)
+    app.include_router(content_router)
+    app.include_router(schedule_router)
     app.include_router(agent_router, prefix="/agent", tags=["agent"])
 
     return app

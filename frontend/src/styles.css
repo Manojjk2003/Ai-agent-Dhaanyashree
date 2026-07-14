@@ -55,6 +55,14 @@ body {
   padding: 20px;
 }
 
+.selectable-card {
+  cursor: pointer;
+}
+
+.review-panel {
+  max-width: none;
+}
+
 .dashboard {
   width: 100%;
 }

@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     app_env: str = "development"
     cors_origins_raw: str = "http://localhost:5173"
     llm_provider: str = "mock"
+    gemini_model: str = "gemini-3.5-flash"
+    gemini_api_key: str | None = None
+    openrouter_api_key: str | None = None
+    groq_api_key: str | None = None
     firebase_project_id: str | None = None
     firebase_client_email: str | None = None
     firebase_private_key: str | None = None

@@ -6,7 +6,7 @@ Update this file whenever Firestore collections, document fields, storage paths,
 
 ## Current State
 
-Business profile and product read/write are implemented through the backend Firebase Admin service. The frontend Firebase web client is initialized for Auth, Firestore, Storage, and Analytics.
+Business profile, product, and generated post read/write are implemented through the backend Firebase Admin service. The frontend Firebase web client is initialized for Auth, Firestore, Storage, and Analytics.
 
 ## Firestore Collections
 
@@ -69,7 +69,7 @@ Fields:
 - `preferredLanguages`
 - `updatedAt`
 
-### `businesses/{businessId}/products`
+### `products`
 
 Purpose: products the agent can promote.
 
@@ -90,7 +90,8 @@ Fields:
 
 Current implementation detail:
 
-- Document path: `businesses/{firebase_uid}/products/{productId}`
+- Document path: `products/{productId}`
+- Each product stores `business_id` to link it to the user's one business profile.
 - Stored field names currently use snake_case, matching the API schemas.
 - `DELETE /products/{product_id}` physically deletes the product document in the current MVP.
 
@@ -148,17 +149,31 @@ Fields:
 - `businessId`
 - `contentPlanId`
 - `productId`
+- `product_name`
+- `selection_reason`
 - `trendId`
 - `contentType`
+- `content_idea`
 - `platforms`
 - `caption`
 - `cta`
 - `hashtags`
+- `poster_prompt`
 - `status`
+- `generation_source`
 - `scheduledPostId`
 - `createdByRunId`
 - `createdAt`
 - `updatedAt`
+
+Current implementation detail:
+
+- Document path: `generated_posts/{postId}`
+- Each generated post stores `business_id` to link it to the user's one business profile.
+- Generated daily plans are saved here automatically by `POST /agent/run-daily-plan`.
+- Content review updates `caption`, `hashtags`, `poster_prompt`, and `status`.
+- `generation_source` is `gemini` for Gemini-generated content and `fallback` for rule-generated content.
+- Rejecting generated content deletes the `generated_posts/{postId}` document in the current MVP.
 
 Statuses:
 
@@ -242,7 +257,13 @@ Fields:
 
 - `businessId`
 - `postId`
-- `platform`
+- `product_id`
+- `product_name`
+- `content_type`
+- `caption`
+- `hashtags`
+- `poster_prompt`
+- `platforms`
 - `scheduledAt`
 - `publishedAt`
 - `platformPostId`
@@ -250,6 +271,13 @@ Fields:
 - `errorMessage`
 - `createdAt`
 - `updatedAt`
+
+Current implementation detail:
+
+- Document path: `scheduled_posts/{scheduledPostId}`
+- Each scheduled post stores `business_id` and a content snapshot from the approved generated post.
+- Creating a scheduled post sets the source generated post status to `scheduled` and adds `scheduled_post_id` plus `scheduled_at`.
+- Cancelling a scheduled post deletes the schedule document and returns the source generated post status to `approved`.
 
 ### `analytics`
 

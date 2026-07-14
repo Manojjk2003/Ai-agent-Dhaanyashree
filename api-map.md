@@ -6,7 +6,7 @@ Update this file whenever an endpoint is added, removed, renamed, or its request
 
 ## Current State
 
-Phase 4 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs, product APIs, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. The daily-plan endpoint reads the authenticated user's one business profile and products, then returns a deterministic generated marketing plan.
+Phase 7 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs, product APIs, generated content APIs, schedule APIs, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. The daily-plan endpoint reads the authenticated user's one business profile and products, tries Gemini-backed content generation when configured, falls back to deterministic generation when needed, and saves the generated content for review. Approved generated content can be scheduled into the manual calendar queue.
 
 ## API Inventory
 
@@ -21,12 +21,18 @@ Phase 4 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs
 | `GET` | `/products/{product_id}` | Read product details, implemented | Products page |
 | `PATCH` | `/products/{product_id}` | Update product, implemented | Products page |
 | `DELETE` | `/products/{product_id}` | Delete product, implemented | Products page |
-| `POST` | `/agent/run-daily-plan` | Generate daily marketing plan from business profile and products | Dashboard, future scheduler |
+| `POST` | `/agent/run-daily-plan` | Generate daily marketing plan and save generated post | Dashboard, Content page |
 | `GET` | `/content/plans` | List content plans | Calendar |
-| `GET` | `/content/posts` | List generated posts | Generated Content page |
-| `PATCH` | `/content/posts/{post_id}` | Edit generated post | Generated Content page |
+| `GET` | `/content/posts` | List generated posts, implemented | Generated Content page |
+| `GET` | `/content/posts/{post_id}` | Read generated post, implemented | Generated Content page |
+| `PATCH` | `/content/posts/{post_id}` | Edit caption, hashtags, poster prompt, and review status | Generated Content page |
+| `DELETE` | `/content/posts/{post_id}` | Reject and delete generated post | Generated Content page |
+| `GET` | `/schedule/posts` | List manually scheduled posts | Calendar page |
+| `POST` | `/schedule/posts` | Schedule approved generated content | Calendar page |
+| `POST` | `/schedule/recommend-time` | Recommend best time for approved generated content | Calendar page |
+| `DELETE` | `/schedule/posts/{scheduled_post_id}` | Cancel scheduled post and return source post to approved | Calendar page |
 | `POST` | `/poster/generate` | Generate poster | Posters page, daily workflow |
-| `POST` | `/social/schedule` | Schedule approved content | Calendar, Social page |
+| `POST` | `/social/schedule` | Publish/schedule through real social platform API, future | Social page |
 | `POST` | `/social/publish-now` | Publish approved content | Social page |
 | `GET` | `/analytics` | Read performance summary | Dashboard, Analytics page |
 | `GET` | `/recommendations` | Read recommended actions | Dashboard |
@@ -174,7 +180,7 @@ Response:
 
 ### `POST /agent/run-daily-plan`
 
-Purpose: run the MVP marketing workflow.
+Purpose: run the MVP marketing workflow and save the result as generated content.
 
 Current request:
 
@@ -204,11 +210,45 @@ Current response:
   "content_idea": "Show how Ragi Malt helps with high calcium in everyday life.",
   "caption": "Make today's routine healthier with Ragi Malt...",
   "hashtags": ["#RagiMalt", "#Breakfast", "#HealthyChoices"],
-  "poster_prompt": "Commercial social media poster for Dhaanyashree..."
+  "poster_prompt": "Commercial social media poster for Dhaanyashree...",
+  "generation_source": "gemini"
 }
 ```
 
 Implementation note: the Python schema uses snake_case fields.
+
+### `GET /content/posts`
+
+Response:
+
+```json
+[
+  {
+    "post_id": "post_123",
+    "business_id": "firebase_uid",
+    "run_id": "run_123",
+    "content_plan_id": "plan_123",
+    "product_id": "product_123",
+    "product_name": "Ragi Malt",
+    "selection_reason": "Strongest product memory",
+    "content_type": "Educational post",
+    "content_idea": "Show how Ragi Malt helps with high calcium.",
+    "caption": "Make today's routine healthier...",
+    "hashtags": ["#RagiMalt"],
+    "poster_prompt": "Commercial social media poster...",
+    "platforms": ["instagram"],
+    "run_date": "2026-07-14",
+    "status": "ready_for_review",
+    "generation_source": "gemini",
+    "scheduled_post_id": null,
+    "scheduled_at": null,
+    "created_at": "2026-07-14T10:00:00+00:00",
+    "updated_at": "2026-07-14T10:00:00+00:00"
+  }
+]
+```
+
+`generation_source` is `gemini` when the configured Gemini provider produced the content and `fallback` when the rule-based local generator produced it.
 
 ### `PATCH /content/posts/{post_id}`
 
@@ -220,6 +260,7 @@ Request:
 {
   "caption": "Updated caption",
   "hashtags": ["#millets", "#healthybreakfast"],
+  "poster_prompt": "Updated poster prompt",
   "status": "approved"
 }
 ```
@@ -228,12 +269,49 @@ Response:
 
 ```json
 {
-  "postId": "post_123",
-  "updated": true
+  "post_id": "post_123",
+  "status": "approved"
 }
 ```
 
-### `POST /social/schedule`
+### `DELETE /content/posts/{post_id}`
+
+Purpose: reject a generated draft and remove it from Firestore.
+
+Response:
+
+```text
+204 No Content
+```
+
+### `GET /schedule/posts`
+
+Purpose: list scheduled posts in the manual calendar queue.
+
+Response:
+
+```json
+[
+  {
+    "scheduled_post_id": "scheduled_123",
+    "business_id": "firebase_uid",
+    "post_id": "post_123",
+    "product_id": "product_123",
+    "product_name": "Ragi Malt",
+    "content_type": "Product Spotlight",
+    "caption": "Start your day with...",
+    "hashtags": ["#RagiMalt"],
+    "poster_prompt": "Bright kitchen counter...",
+    "platforms": ["instagram"],
+    "scheduled_at": "2026-07-15T10:00:00+05:30",
+    "status": "scheduled",
+    "created_at": "2026-07-14T10:00:00+00:00",
+    "updated_at": "2026-07-14T10:00:00+00:00"
+  }
+]
+```
+
+### `POST /schedule/posts`
 
 Purpose: schedule approved content.
 
@@ -241,9 +319,25 @@ Request:
 
 ```json
 {
-  "postId": "post_123",
+  "post_id": "post_123",
   "platforms": ["instagram"],
-  "scheduledAt": "2026-06-25T09:30:00+05:30"
+  "scheduled_at": "2026-07-15T10:00:00+05:30"
+}
+```
+
+Response: same object as `GET /schedule/posts`.
+
+### `POST /schedule/recommend-time`
+
+Purpose: recommend a posting time for approved generated content. Gemini is used when configured; otherwise the backend returns a heuristic fallback recommendation.
+
+Request:
+
+```json
+{
+  "post_id": "post_123",
+  "target_date": "2026-07-15",
+  "platforms": ["instagram"]
 }
 ```
 
@@ -251,9 +345,22 @@ Response:
 
 ```json
 {
-  "scheduledPostId": "scheduled_123",
-  "status": "scheduled"
+  "recommended_at": "2026-07-15T08:30:00",
+  "reason": "Morning is a strong fit for food and health content because people are planning meals and routines.",
+  "confidence": 0.72,
+  "alternative_slots": ["2026-07-15T12:30:00", "2026-07-15T18:30:00"],
+  "generation_source": "gemini"
 }
+```
+
+### `DELETE /schedule/posts/{scheduled_post_id}`
+
+Purpose: cancel a scheduled post and return the source generated post to `approved`.
+
+Response:
+
+```text
+204 No Content
 ```
 
 ## Error Handling Standard

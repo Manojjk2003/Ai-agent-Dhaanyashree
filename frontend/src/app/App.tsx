@@ -12,11 +12,13 @@ import {
 
 import { useAuth } from "../auth/AuthContext";
 import { BusinessProfilePage } from "../pages/BusinessProfile/BusinessProfilePage";
+import { ContentCalendarPage } from "../pages/ContentCalendar/ContentCalendarPage";
 import { DashboardPage } from "../pages/Dashboard/DashboardPage";
+import { GeneratedContentPage } from "../pages/GeneratedContent/GeneratedContentPage";
 import { LoginPage } from "../pages/Login/LoginPage";
 import { ProductsPage } from "../pages/Products/ProductsPage";
 
-type AppView = "dashboard" | "business" | "products";
+type AppView = "dashboard" | "business" | "products" | "content" | "calendar";
 
 export function App() {
   const { loading, logout, user } = useAuth();
@@ -61,6 +63,20 @@ export function App() {
             >
               Products
             </Button>
+            <Button
+              color={view === "content" ? "primary" : "inherit"}
+              onClick={() => setView("content")}
+              variant={view === "content" ? "contained" : "text"}
+            >
+              Content
+            </Button>
+            <Button
+              color={view === "calendar" ? "primary" : "inherit"}
+              onClick={() => setView("calendar")}
+              variant={view === "calendar" ? "contained" : "text"}
+            >
+              Calendar
+            </Button>
             <Button onClick={logout} variant="outlined">
               Logout
             </Button>
@@ -72,6 +88,8 @@ export function App() {
         {view === "dashboard" ? <DashboardPage /> : null}
         {view === "business" ? <BusinessProfilePage /> : null}
         {view === "products" ? <ProductsPage /> : null}
+        {view === "content" ? <GeneratedContentPage /> : null}
+        {view === "calendar" ? <ContentCalendarPage /> : null}
       </Container>
     </Box>
   );

@@ -1,4 +1,142 @@
-﻿## Phase 4 Setup Status
+## Phase 8 Setup Status
+
+Status: AI schedule time recommendation created.
+
+Created:
+
+- `POST /schedule/recommend-time` protected API.
+- Gemini-backed schedule recommendation using business profile, product memory, generated content, target date, and platform.
+- Heuristic fallback recommendation when Gemini is unavailable.
+- Recommendation response with `recommended_at`, `reason`, `confidence`, `alternative_slots`, and `generation_source`.
+- Calendar UI **Recommend Time** button.
+- Calendar UI applies the recommended time to the schedule input while still allowing manual edits before saving.
+
+Implemented backend routes:
+
+- `POST /schedule/recommend-time`.
+
+Recommendation workflow:
+
+```text
+Calendar tab
+  -> Choose approved content
+  -> Click Recommend Time
+  -> Gemini/fallback suggests best time and alternatives
+  -> User accepts or edits time
+  -> Schedule selected post
+```
+
+Next phase:
+
+- Add poster image generation for approved or scheduled content.
+- Later connect scheduled posts to real social publishing APIs.
+
+## Phase 7 Setup Status
+
+Status: manual content calendar and scheduling created.
+
+Created:
+
+- `backend/app/schemas/scheduled_post.py` scheduled post schemas.
+- `backend/app/api/routes_schedule.py` protected schedule APIs.
+- Firestore scheduled post storage in top-level `scheduled_posts/{scheduledPostId}` documents linked by `business_id`.
+- Scheduling workflow that requires generated content to be `approved`.
+- Creating a scheduled post updates the source generated post to `scheduled`.
+- Cancelling a scheduled post deletes the schedule document and returns the source generated post to `approved`.
+- `frontend/src/pages/ContentCalendar/ContentCalendarPage.tsx` calendar/schedule UI.
+- Calendar navigation in the protected app shell.
+- Scheduled content API helpers in `frontend/src/services/api.ts`.
+
+Implemented backend routes:
+
+- `GET /schedule/posts`.
+- `POST /schedule/posts`.
+- `DELETE /schedule/posts/{scheduled_post_id}`.
+
+Calendar workflow:
+
+```text
+Content tab
+  -> Approve generated content
+  -> Calendar tab
+  -> Choose approved content
+  -> Pick schedule date/time
+  -> Save to scheduled_posts
+```
+
+Next phase:
+
+- Add poster image generation for approved or scheduled content.
+- Later connect scheduled posts to real social publishing APIs.
+
+## Phase 6 Setup Status
+
+Status: Gemini-backed daily marketing generation added with fallback.
+
+Created:
+
+- `backend/app/services/llm_service.py` Gemini Interactions API integration.
+- Daily graph now tries Gemini using business profile plus selected product memory.
+- Deterministic caption/hashtag/poster prompt generation remains as fallback when Gemini is not configured, the key is rejected, the network fails, or Gemini returns invalid JSON.
+- `generation_source` added to daily plan and generated post responses.
+- Dashboard and content review UI show whether output came from Gemini or fallback rules.
+
+Environment:
+
+```text
+LLM_PROVIDER=gemini
+GEMINI_MODEL=gemini-3.5-flash
+GEMINI_API_KEY=<your-google-ai-studio-key>
+```
+
+Generate or view the key at:
+
+```text
+https://aistudio.google.com/api-keys
+```
+
+Next phase:
+
+- Add content calendar and scheduling for approved generated posts.
+- Add poster image generation for approved content.
+
+## Phase 5 Setup Status
+
+Status: generated content persistence and review created.
+
+Created:
+
+- `backend/app/schemas/generated_post.py` generated post schemas.
+- `backend/app/api/routes_content.py` protected generated content APIs.
+- Firestore generated post storage in top-level `generated_posts/{postId}` documents linked by `business_id`.
+- Daily marketing workflow now saves generated content automatically.
+- `frontend/src/pages/GeneratedContent/GeneratedContentPage.tsx` content review UI.
+- Content navigation in the protected app shell.
+- Generated content API helpers in `frontend/src/services/api.ts`.
+
+Implemented backend routes:
+
+- `GET /content/posts`.
+- `GET /content/posts/{post_id}`.
+- `PATCH /content/posts/{post_id}`.
+- `DELETE /content/posts/{post_id}`.
+
+Review workflow:
+
+```text
+Generate Today
+  -> Save generated post
+  -> Content tab
+  -> Edit caption / hashtags / poster prompt
+  -> Approve or reject/delete
+```
+
+Next phase:
+
+- Add content calendar.
+- Schedule approved posts.
+- Add poster image generation for approved content.
+## Phase 4 Setup Status
 
 Status: first daily marketing workflow created.
 
@@ -34,7 +172,7 @@ Created:
 
 - `backend/app/schemas/product.py` product request/response schemas.
 - `backend/app/api/routes_products.py` protected product CRUD APIs.
-- Firestore product storage under `businesses/{firebase_uid}/products/{productId}`.
+- Firestore product storage in top-level `products/{productId}` documents linked by `business_id`.
 - `frontend/src/pages/Products/ProductsPage.tsx` product management UI.
 - Frontend product API helpers in `frontend/src/services/api.ts`.
 - Products navigation in the protected app shell.
@@ -277,12 +415,12 @@ recommendations
 agent_logs
 ```
 
-I would make `businesses` a top-level collection because one user may later manage multiple businesses.
+Keep `businesses` as a top-level collection, but the MVP uses one business profile per signed-in user. Products and generated posts are separate top-level collections linked with `business_id`.
 
 Example:
 
 ```text
-businesses/{businessId}
+businesses/{firebase_uid}
 products/{productId}
 content_plans/{planId}
 generated_posts/{postId}
@@ -579,5 +717,6 @@ Node.js is installed:
 cd frontend
 npm install
 npm run dev
+
 
 

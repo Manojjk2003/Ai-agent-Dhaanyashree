@@ -6,7 +6,7 @@ Update this file whenever system boundaries, services, agents, deployment shape,
 
 ## Current State
 
-Phase 4 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile, product management, and daily plan generation. The backend has health, current-user, business profile, product, and daily-plan routes. Firebase Admin verification and Firestore business/product persistence are implemented. Daily plan generation is deterministic for now and uses the same graph boundary where LangGraph nodes will be added later.
+Phase 8 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile, product management, daily plan generation, generated content review, manual content calendar, and AI schedule time recommendation. The backend has health, current-user, business profile, product, generated content, schedule, and daily-plan routes. Firebase Admin verification and Firestore business/product/generated-content/scheduled-content persistence are implemented. Daily plan generation and schedule recommendation try Gemini when configured and fall back to deterministic rules when Gemini is unavailable.
 
 ## Intended System Map
 
@@ -30,21 +30,22 @@ FastAPI Backend
   |       +--> Auth API: implemented
   |       +--> Business/Profile APIs: implemented
   |       +--> Product APIs: implemented
+  |       +--> Generated Content APIs: implemented
+  |       +--> Schedule APIs: implemented
   |       +--> Daily Plan API: implemented
-  |       +--> Content APIs: planned
   |       +--> Poster APIs: planned
   |       +--> Social APIs: planned
   |       +--> Analytics APIs: planned
   |       `--> Agent Log APIs: planned
   |
   +--> LangGraph Workflows
-  |       +--> Daily Marketing Graph: deterministic implementation
+  |       +--> Daily Marketing Graph: Gemini-backed implementation with fallback
   |       +--> SEO Graph
   |       +--> Analytics Recommendation Graph
   |       `--> Future Video Graph
   |
   +--> Services
-  |       +--> LLM Service: placeholder
+  |       +--> LLM Service: Gemini Interactions API integration
   |       +--> Image Service: placeholder
   |       +--> Firebase Service: placeholder
   |       +--> Social Service: placeholder
@@ -200,10 +201,50 @@ Backend verifies Firebase token
 Backend loads one business profile and products
   |
   v
-Product selection, content strategy, caption, hashtag, and prompt agents run
+Product selection agent chooses product
+  |
+  v
+LLM service tries Gemini with business and product memory
+  |
+  +--> If Gemini succeeds, use LLM caption, hashtags, and poster prompt
+  |
+  `--> If Gemini fails, run deterministic content strategy, caption, hashtag, and prompt agents
   |
   v
 Backend returns selected product, idea, caption, hashtags, and poster prompt
+  |
+  v
+Generated post is saved in the top-level generated_posts collection with business_id
+  |
+  v
+Content review screen can edit and approve or reject it
+```
+
+Current calendar behavior:
+
+```text
+Content review screen
+  |
+  v
+User approves generated content
+  |
+  v
+Calendar screen lists approved generated posts
+  |
+  v
+User can request AI recommended posting time
+  |
+  v
+Gemini/fallback recommends time, reason, confidence, and alternatives
+  |
+  v
+User accepts or edits date/time and schedules post
+  |
+  v
+Backend writes scheduled_posts document and marks generated post as scheduled
+  |
+  v
+Calendar screen shows manual scheduled queue
 ```
 
 ## Background Jobs
@@ -251,4 +292,4 @@ Future:
 - Final image generation provider.
 - Final hosting provider.
 - Social platform permission status.
-- Whether the project will support multiple businesses per user in MVP.
+- Whether agency-style multi-business support is needed after the one-business MVP.

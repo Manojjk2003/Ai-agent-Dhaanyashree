@@ -26,3 +26,4 @@ class DailyPlanResponse(BaseModel):
     caption: str
     hashtags: list[str]
     poster_prompt: str | None = None
+    generation_source: Literal["gemini", "fallback"] = "fallback"
