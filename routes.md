@@ -6,7 +6,7 @@ Update this file whenever frontend pages, layouts, protected routes, backend rou
 
 ## Current State
 
-Phase 12 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products/references/content/calendar view switch without React Router. Backend has health, auth, asset upload, business profile, product, reference image, generated content, schedule, poster, mock social publishing, and daily-plan endpoints.
+Phase 15 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products/references/content/calendar view switch without React Router. Backend has health, auth, asset upload, business profile, product, reference image, generated content, schedule, poster, social publishing, and daily-plan endpoints.
 
 ## Planned Frontend Routes
 
@@ -62,9 +62,9 @@ Phase 12 scaffold routes exist. Frontend has an in-app auth-gated dashboard/busi
 | `POST` | `/schedule/recommend-time` | Recommend best posting time, implemented | Yes |
 | `DELETE` | `/schedule/posts/{scheduled_post_id}` | Cancel scheduled post, implemented | Yes |
 | `GET` | `/posters` | List generated posters, implemented | Yes |
-| `POST` | `/posters/generate` | Generate poster for generated content, implemented | Yes |
+| `POST` | `/posters/generate` | Generate template-based branded poster for generated content, implemented | Yes |
 | `POST` | `/social/schedule` | Real social platform scheduling, future | Yes |
-| `POST` | `/social/publish-now` | Mock publish scheduled content immediately, implemented | Yes |
+| `POST` | `/social/publish-now` | Publish scheduled content immediately through Meta when configured, otherwise mock, implemented | Yes |
 | `GET` | `/analytics` | Fetch analytics summary | Yes |
 | `GET` | `/recommendations` | Fetch recommendations | Yes |
 | `GET` | `/agent/logs` | List agent logs | Yes |

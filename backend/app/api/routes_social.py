@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 
+from app.config import settings
 from app.dependencies import get_current_user
 from app.schemas.auth import CurrentUser
 from app.schemas.scheduled_post import PublishNowRequest, PublishNowResponse
@@ -21,9 +22,13 @@ def publish_now(
         user,
         request.scheduled_post_id,
     )
+    latest_poster = firebase_service.get_latest_generated_poster_for_post(
+        user,
+        scheduled_post.post_id,
+    )
 
     try:
-        result = social_service.publish_now(scheduled_post)
+        result = social_service.publish_now(scheduled_post, latest_poster)
     except Exception as exc:
         failed_post = firebase_service.mark_scheduled_post_failed(
             user,
@@ -32,7 +37,7 @@ def publish_now(
         )
         return PublishNowResponse(
             scheduled_post=failed_post,
-            provider="mock",
+            provider="meta" if settings.social_provider.lower() == "meta" else "mock",
             platform_post_id="",
             message=str(exc),
         )
@@ -44,7 +49,7 @@ def publish_now(
     )
     return PublishNowResponse(
         scheduled_post=published_post,
-        provider="mock",
+        provider=result.provider,
         platform_post_id=result.platform_post_id,
         message=result.message,
     )

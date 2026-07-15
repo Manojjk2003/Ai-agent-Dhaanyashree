@@ -15,7 +15,7 @@ Whenever code, configuration, routes, APIs, database schema, agent behavior, dep
 
 The project is intended to become an AI Marketing Partner for small business owners. The system should understand the business, products, audience, brand tone, trends, content performance, and sales signals, then generate marketing actions such as captions, posters, reels, SEO ideas, calendar plans, and recommendations.
 
-Current repository state: Phase 13 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, one business profile form with brand kit uploads, product management with multiple uploaded image URLs, reference image memory with uploads, daily marketing plan generation, generated content review, manual content calendar scheduling, AI schedule time recommendation, poster image generation/preview, mock publish controls, a FastAPI backend with Firebase token verification plus asset-upload/business/product/reference-image/content/schedule/poster/social/agent routes, Gemini-backed daily generation, Hugging Face FLUX/Gemini poster image generation paths with fallback SVG output, Firebase Storage upload support, brand-grounded prompt generation, final logo/product-image poster composition, root environment/ignore/readme files, and project memory documents.
+Current repository state: Phase 15 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, one business profile form with brand kit uploads, product management with multiple uploaded image URLs, reference image memory with uploads, daily marketing plan generation, generated content review, manual content calendar scheduling, AI schedule time recommendation, poster image generation/preview, manual publish controls, a FastAPI backend with Firebase token verification plus asset-upload/business/product/reference-image/content/schedule/poster/social/agent routes, Gemini-backed daily generation, template-based branded poster layout rendering, Hugging Face FLUX/Gemini poster image fallback paths, Firebase Storage upload support, brand-grounded prompt generation, final logo/product-image poster composition, Meta Graph API publishing foundation with mock fallback, root environment/ignore/readme files, and project memory documents.
 
 Verified from repository: `git status` reports this is not a valid Git repository, even though a `.git` entry is present in the workspace.
 
@@ -550,7 +550,7 @@ Status: manual calendar scheduling plus AI schedule time recommendation is imple
 
 Purpose: publish or schedule approved content to social platforms.
 
-Status: mock publishing is implemented. `POST /social/publish-now` marks scheduled content and the source generated post as `published`, stores a mock platform post id, and leaves real Meta/Instagram publishing for the next integration phase.
+Status: Meta publishing foundation is implemented with mock fallback. `POST /social/publish-now` marks scheduled content and the source generated post as `published`, stores the platform post id, and uses Meta Graph API when `SOCIAL_PROVIDER=meta` plus Meta credentials are configured. Without credentials, it records a mock publish response.
 
 ### SEO
 
@@ -663,21 +663,30 @@ Actual deployment:
 
 Build in this order:
 
-1. Project scaffold.
-2. Firebase Auth and business profile.
-3. Product management.
-4. Daily content generation graph. First deterministic version is implemented.
-5. Manual approval and generated content review. Current review version is implemented.
-6. Gemini-backed content generation. Current Gemini/fallback version is implemented.
-7. Content calendar and scheduling. Current manual scheduling version is implemented.
-8. AI schedule time recommendation. Current Gemini/fallback recommendation version is implemented.
-9. Poster generation. Current Hugging Face FLUX/Gemini/fallback image version is implemented.
-10. Social publishing foundation. Current mock publish version is implemented.
-11. Brand kit and visual memory foundation. Current upload-backed visual memory version is implemented.
-12. Firebase Storage uploads for brand/reference/product/generated poster assets. Current upload foundation is implemented.
-13. Brand-grounded generation using brand kit, product images, and reference images. Current prompt and final composition foundation is implemented.
-14. Use uploaded reference/product images as true image-conditioning inputs for the image model where provider support allows it.
-15. Analytics.
-16. Recommendations.
-17. SEO and blogs.
-18. Reels/video generation.
+1. Project scaffold. Done.
+2. Firebase Auth + protected backend. Done.
+3. One business profile. Done.
+4. Products under one business. Done.
+5. Daily plan generation. Done.
+6. Generated content review/edit/approve/reject. Done.
+7. Gemini text generation with fallback. Done.
+8. Calendar scheduling + AI time recommendation. Done.
+9. Poster generation with Hugging Face/Gemini/fallback. Done.
+10. Mock social publish foundation. Done.
+11. Brand kit + reference images + product image fields. Done.
+12. Firebase Storage uploads for logo/product/reference/poster images. Done.
+13. Brand-grounded generation: AI uses brand/product/reference memory and final poster overlays logo/product image. Done.
+14. Better poster layout engine: controlled Canva-like layout with logo, product photo, headline, CTA, colors, and fonts. Done.
+15. Real social publishing foundation: Meta Graph API adapter for Instagram/Facebook with mock fallback. Done.
+16. Analytics: track posts, status, engagement, and published history.
+17. Recommendations: AI tells what to post next based on analytics/products.
+18. SEO website module: generate SEO keywords, meta title, meta description, website copy, and FAQs.
+19. Blog/content module: generate blog posts, product pages, recipe posts, and educational articles.
+20. Campaign planner: 7-day and 30-day content calendar campaigns.
+21. Video/Reels generation: generate reel scripts, scenes, voiceover text, video prompts, and assets.
+22. Trend intelligence: festival, season, local event, and trend-aware content ideas.
+23. Agent logs/memory audit: show why AI selected product, content, posting time, and recommendation.
+24. Real image reference model: true image-to-image/reference-based image generation when provider support is available.
+25. Sales/order intelligence: use sales and product performance to guide marketing.
+
+Phase numbering note: earlier work moved quickly and the numbering became confusing. The official phase map is now frozen in `plan.md` and mirrored here. The roadmap did not drop SEO, video, trends, analytics, or recommendations; those remain planned future phases after the MVP foundation.

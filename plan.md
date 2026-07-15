@@ -1,3 +1,119 @@
+## Official Phase Map
+
+This is the frozen source of truth for phase numbering. The earlier conversation moved quickly, so this table clarifies what has actually been completed and what remains.
+
+### Completed Phases
+
+| Phase | Status | What it means |
+|---|---|---|
+| 1 | Done | Project scaffold: FastAPI + React/Vite structure |
+| 2 | Done | Firebase Auth + protected backend |
+| 3 | Done | One business profile |
+| 4 | Done | Products under one business |
+| 5 | Done | Daily plan generation |
+| 6 | Done | Generated content review/edit/approve/reject |
+| 7 | Done | Gemini text generation with fallback |
+| 8 | Done | Calendar scheduling + AI time recommendation |
+| 9 | Done | Poster generation with Hugging Face/Gemini/fallback |
+| 10 | Done | Mock social publish foundation |
+| 11 | Done | Brand kit + reference images + product image fields |
+| 12 | Done | Firebase Storage uploads for logo/product/reference/poster images |
+| 13 | Done | Brand-grounded generation: AI uses brand/product/reference memory and final poster overlays logo/product image |
+| 14 | Done | Better poster layout engine: controlled Canva-like layout with logo, product photo, headline, CTA, colors, and fonts |
+| 15 | Done | Real social publishing foundation: Meta Graph API adapter for Instagram/Facebook with mock fallback |
+
+Why the numbering jumped: we were around Phase 8/9, then quickly added poster image generation, mock social publishing, brand kit, uploads, and brand-grounded generation. That work is now normalized into Phases 9-13 above.
+
+### Current Finished Foundation
+
+- Business profile.
+- Products.
+- Brand kit.
+- Reference images.
+- Image uploads.
+- Daily content generation.
+- Gemini/fallback captions.
+- Poster generation.
+- Calendar scheduling.
+- AI recommended posting time.
+- Mock publishing.
+- Brand-grounded poster/context generation.
+
+### Remaining Major Roadmap
+
+| Future Phase | Feature | What it will do |
+|---|---|---|
+| 16 | Analytics | Track posts, status, engagement, published history |
+| 17 | Recommendations | AI tells what to post next based on analytics/products |
+| 18 | SEO website module | Generate SEO keywords, meta title, meta description, website copy, FAQs |
+| 19 | Blog/content module | Generate blog posts, product pages, recipe/education articles |
+| 20 | Campaign planner | 7-day / 30-day content calendar campaigns |
+| 21 | Video/Reels generation | Generate reel script, scenes, voiceover text, video prompt/assets |
+| 22 | Trend intelligence | Festival/season/trend-aware content ideas |
+| 23 | Agent logs/memory audit | Show why AI selected product/content/time |
+| 24 | Real image reference model | True image-to-image/reference-based image generation |
+| 25 | Sales/order intelligence | Use sales/product performance to guide marketing |
+
+Recommended next phase: Phase 16, Analytics, after configuring and testing Meta credentials.
+
+## Phase 15 Setup Status
+
+Status: real social publishing foundation created.
+
+Created:
+
+- Meta Graph API publishing adapter in `backend/app/services/social_service.py`.
+- `SOCIAL_PROVIDER=meta` configuration path with mock fallback when credentials are missing.
+- Meta config fields: `META_GRAPH_API_VERSION`, `META_PAGE_ID`, `META_PAGE_ACCESS_TOKEN`, and `META_INSTAGRAM_BUSINESS_ACCOUNT_ID`.
+- Publishing now loads the latest generated poster for the scheduled post and uses its public image URL.
+- Instagram publish flow: create media container, then publish media.
+- Facebook publish flow: publish photo when image URL exists, otherwise publish text feed post.
+- `POST /social/publish-now` now returns actual provider value: `mock` or `meta`.
+
+Required before live publishing:
+
+- Facebook Page ID.
+- Page access token with publishing permissions.
+- Instagram Business Account ID connected to the Facebook Page.
+- App permissions and review as required by Meta for production users.
+- A generated poster saved to a public Firebase Storage URL for Instagram publishing.
+
+Current limitation:
+
+- OAuth connection UI is not implemented yet; credentials are configured server-side in `.env`.
+- Scheduled background publishing is not implemented yet; publishing is still manual via **Publish Now**.
+- Multi-platform IDs are stored in one comma-separated `platform_post_id` field for now.
+
+## Phase 14 Setup Status
+
+Status: better poster layout engine created.
+
+Created:
+
+- `GeneratedPosterCreate.template` with options: `auto`, `product_spotlight`, `educational`, `offer`, and `festival`.
+- Backend layout renderer in `backend/app/services/image_service.py`.
+- Controlled 1080x1080 PNG poster composition using brand colors, logo, product image, headline, caption snippet, hashtags, CTA, website/phone footer, and template-specific backgrounds.
+- `layout` poster provider value for generated poster metadata.
+- Content Review template selector before generating a poster.
+- Frontend poster preview chip: `Generated with brand layout engine`.
+
+Current behavior:
+
+```text
+Content Review
+  -> choose template
+  -> Generate Poster
+  -> backend loads business + product + reference memory
+  -> layout renderer creates branded PNG
+  -> Firebase Storage save is attempted
+  -> local /static/posters fallback is used if Storage is unavailable
+```
+
+Current limitation:
+
+- This is controlled layout rendering, not a full drag-and-drop design editor.
+- Fonts use available system fonts through Pillow; exact custom font upload is still future work.
+
 ## Phase 13 Setup Status
 
 Status: brand-grounded generation is implemented for text prompts and final raster poster composition.

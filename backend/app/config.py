@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     firebase_storage_bucket: str | None = None
     firebase_service_account_file: str | None = None
     firebase_token_clock_skew_seconds: int = 10
+    social_provider: str = "mock"
+    meta_graph_api_version: str = "v23.0"
+    meta_page_id: str | None = None
+    meta_page_access_token: str | None = None
+    meta_instagram_business_account_id: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

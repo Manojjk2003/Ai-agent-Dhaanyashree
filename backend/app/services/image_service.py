@@ -13,6 +13,7 @@ from uuid import uuid4
 from app.config import BACKEND_DIR, settings
 from app.schemas.business import BusinessProfileResponse
 from app.schemas.generated_post import GeneratedPostResponse
+from app.schemas.generated_poster import PosterTemplate
 from app.schemas.product import ProductResponse
 from app.schemas.reference_image import ReferenceImageResponse
 from app.services.storage_service import upload_bytes_to_storage
@@ -58,9 +59,22 @@ def generate_poster_image(
     business_id: str,
     logo_url: str | None = None,
     visual_context: VisualAssetContext | None = None,
+    template: PosterTemplate = "auto",
 ) -> PosterImage:
     if visual_context is None and logo_url:
         visual_context = VisualAssetContext()
+
+    if visual_context and visual_context.business:
+        try:
+            return _generate_layout_poster(
+                generated_post,
+                business_id,
+                visual_context,
+                template,
+            )
+        except Exception as exc:
+            fallback_reason = f"Layout renderer failed: {_safe_error_message(exc)}"
+            return _generate_fallback_poster(generated_post, business_id, fallback_reason)
 
     prompt = _build_poster_prompt(generated_post, visual_context)
     image_provider = settings.image_provider.lower()
@@ -241,6 +255,99 @@ def _generate_fallback_poster(
     )
 
 
+def _generate_layout_poster(
+    generated_post: GeneratedPostResponse,
+    business_id: str,
+    visual_context: VisualAssetContext,
+    template: PosterTemplate,
+) -> PosterImage:
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError as exc:
+        raise ImportError("Pillow is required for layout poster rendering. Run pip install -r requirements.txt.") from exc
+
+    business = visual_context.business
+    if not business:
+        raise ValueError("Business profile is required for layout poster rendering")
+
+    selected_template = _choose_template(template, generated_post.content_type)
+    palette = _layout_palette(business, selected_template)
+    width = 1080
+    height = 1080
+
+    image = Image.new("RGBA", (width, height), palette["background"])
+    draw = ImageDraw.Draw(image)
+    _draw_template_background(draw, width, height, palette, selected_template)
+
+    margin = 70
+    logo_reserved_height = _draw_logo_block(image, business.brand_kit.logo_url, margin, margin)
+    eyebrow_y = margin + logo_reserved_height + 38
+    eyebrow = generated_post.content_type.upper()[:34]
+    draw.text(
+        (margin, eyebrow_y),
+        eyebrow,
+        font=_font(36, bold=True),
+        fill=palette["accent"],
+    )
+
+    headline = _headline_for_post(generated_post)
+    headline_y = eyebrow_y + 52
+    _draw_wrapped_text(
+        draw,
+        headline,
+        (margin, headline_y),
+        max_width=560,
+        font=_font(78, bold=True),
+        fill=palette["ink"],
+        line_spacing=8,
+        max_lines=3,
+    )
+
+    caption_y = headline_y + 250
+    _draw_wrapped_text(
+        draw,
+        generated_post.caption,
+        (margin, caption_y),
+        max_width=560,
+        font=_font(34),
+        fill=palette["muted"],
+        line_spacing=8,
+        max_lines=4,
+    )
+
+    product_box = (640, 218, 1000, 660)
+    product_drawn = _draw_product_image(image, visual_context.product_image_url, product_box)
+    if not product_drawn:
+        _draw_product_placeholder(draw, product_box, generated_post.product_name, palette)
+
+    hashtags = " ".join(generated_post.hashtags[:4])
+    _draw_wrapped_text(
+        draw,
+        hashtags,
+        (margin, 802),
+        max_width=620,
+        font=_font(30, bold=True),
+        fill=palette["primary"],
+        line_spacing=6,
+        max_lines=2,
+    )
+
+    cta = _cta_for_business(business)
+    _draw_cta(draw, cta, (margin, 910), palette)
+    _draw_footer(draw, business, width, height, palette)
+
+    output = io.BytesIO()
+    image.convert("RGB").save(output, format="PNG", optimize=True)
+    return _write_poster_file(
+        output.getvalue(),
+        ".png",
+        "image/png",
+        "layout",
+        business_id,
+        generated_post.post_id,
+    )
+
+
 def _write_poster_file(
     data: bytes,
     extension: str,
@@ -300,6 +407,226 @@ def _write_poster_file(
         provider=provider,
         error_message=error_message,
     )
+
+
+def _choose_template(template: PosterTemplate, content_type: str) -> str:
+    if template != "auto":
+        return template
+
+    content = content_type.lower()
+    if any(word in content for word in ["offer", "sale", "discount", "promotion"]):
+        return "offer"
+    if any(word in content for word in ["festival", "season", "holiday"]):
+        return "festival"
+    if any(word in content for word in ["educational", "tip", "how"]):
+        return "educational"
+    return "product_spotlight"
+
+
+def _layout_palette(business: BusinessProfileResponse, template: str) -> dict[str, tuple[int, int, int, int]]:
+    primary = _hex_to_rgba(business.brand_kit.primary_color, (27, 123, 104, 255))
+    secondary = _hex_to_rgba(business.brand_kit.secondary_color, (217, 84, 43, 255))
+    accent = _hex_to_rgba(business.brand_kit.accent_color, (242, 201, 76, 255))
+    background = {
+        "product_spotlight": (248, 250, 246, 255),
+        "educational": (245, 248, 250, 255),
+        "offer": (255, 248, 242, 255),
+        "festival": (255, 250, 235, 255),
+    }.get(template, (248, 250, 246, 255))
+    return {
+        "primary": primary,
+        "secondary": secondary,
+        "accent": accent,
+        "background": background,
+        "surface": (255, 255, 255, 244),
+        "ink": (15, 31, 26, 255),
+        "muted": (56, 74, 68, 255),
+        "line": (224, 231, 225, 255),
+    }
+
+
+def _draw_template_background(draw, width: int, height: int, palette: dict, template: str) -> None:
+    draw.rectangle((0, 0, width, height), fill=palette["background"])
+    draw.rounded_rectangle((46, 46, width - 46, height - 46), radius=34, fill=palette["surface"])
+
+    if template == "offer":
+        draw.rectangle((0, height - 260, width, height), fill=palette["secondary"])
+        draw.rectangle((0, height - 276, width, height - 260), fill=palette["accent"])
+    elif template == "festival":
+        draw.ellipse((760, -160, 1180, 260), fill=(*palette["accent"][:3], 80))
+        draw.ellipse((-180, 720, 260, 1160), fill=(*palette["secondary"][:3], 56))
+    elif template == "educational":
+        draw.rectangle((0, 0, width, 122), fill=(*palette["primary"][:3], 235))
+        draw.rectangle((0, 122, width, 136), fill=palette["accent"])
+    else:
+        draw.rectangle((0, 0, width, 32), fill=palette["primary"])
+        draw.rectangle((0, height - 32, width, height), fill=palette["primary"])
+
+
+def _draw_logo_block(image, logo_url: str, x: int, y: int) -> int:
+    if not logo_url:
+        return 0
+
+    try:
+        logo = _open_remote_image(logo_url)
+        logo.thumbnail((220, 96))
+        backing = Image.new("RGBA", (logo.width + 32, logo.height + 24), (255, 255, 255, 220))
+        image.alpha_composite(backing, (x, y))
+        image.alpha_composite(logo, (x + 16, y + 12))
+        return backing.height
+    except Exception:
+        return 0
+
+
+def _draw_product_image(image, image_url: str, box: tuple[int, int, int, int]) -> bool:
+    if not image_url:
+        return False
+
+    try:
+        from PIL import Image, ImageDraw
+        product = _open_remote_image(image_url)
+    except Exception:
+        return False
+
+    x1, y1, x2, y2 = box
+    box_width = x2 - x1
+    box_height = y2 - y1
+    product.thumbnail((box_width - 48, box_height - 48), Image.Resampling.LANCZOS)
+
+    backing = Image.new("RGBA", (box_width, box_height), (255, 255, 255, 236))
+    mask = Image.new("L", (box_width, box_height), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.rounded_rectangle((0, 0, box_width, box_height), radius=34, fill=255)
+    backing.putalpha(mask)
+    image.alpha_composite(backing, (x1, y1))
+
+    px = x1 + (box_width - product.width) // 2
+    py = y1 + (box_height - product.height) // 2
+    image.alpha_composite(product, (px, py))
+    return True
+
+
+def _draw_product_placeholder(draw, box: tuple[int, int, int, int], product_name: str, palette: dict) -> None:
+    draw.rounded_rectangle(box, radius=34, fill=(255, 255, 255, 236), outline=palette["line"], width=3)
+    _draw_wrapped_text(
+        draw,
+        product_name,
+        (box[0] + 34, box[1] + 150),
+        max_width=box[2] - box[0] - 68,
+        font=_font(42, bold=True),
+        fill=palette["primary"],
+        line_spacing=8,
+        max_lines=3,
+    )
+
+
+def _draw_cta(draw, cta: str, position: tuple[int, int], palette: dict) -> None:
+    x, y = position
+    font = _font(34, bold=True)
+    bbox = draw.textbbox((0, 0), cta, font=font)
+    width = bbox[2] - bbox[0] + 58
+    height = 78
+    draw.rounded_rectangle((x, y, x + width, y + height), radius=14, fill=palette["primary"])
+    draw.text((x + 29, y + 21), cta, font=font, fill=(255, 255, 255, 255))
+
+
+def _draw_footer(draw, business: BusinessProfileResponse, width: int, height: int, palette: dict) -> None:
+    footer_parts = [part for part in [business.website_url, business.phone_number] if part]
+    if not footer_parts:
+        footer_parts = [business.business_name]
+    footer = "  |  ".join(footer_parts)[:70]
+    draw.text((70, height - 78), footer, font=_font(26), fill=palette["muted"])
+
+
+def _headline_for_post(generated_post: GeneratedPostResponse) -> str:
+    if generated_post.content_type.lower().startswith("offer"):
+        return f"Try {generated_post.product_name} Today"
+    return generated_post.product_name
+
+
+def _cta_for_business(business: BusinessProfileResponse) -> str:
+    if business.website_url:
+        return "Order Today"
+    if business.phone_number:
+        return "Message to Order"
+    return "Learn More"
+
+
+def _draw_wrapped_text(
+    draw,
+    text: str,
+    position: tuple[int, int],
+    max_width: int,
+    font,
+    fill,
+    line_spacing: int,
+    max_lines: int,
+) -> None:
+    x, y = position
+    lines = _wrap_text(draw, text, font, max_width, max_lines)
+    line_height = _line_height(font) + line_spacing
+    for index, line in enumerate(lines):
+        draw.text((x, y + index * line_height), line, font=font, fill=fill)
+
+
+def _wrap_text(draw, text: str, font, max_width: int, max_lines: int) -> list[str]:
+    words = text.replace("\n", " ").split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        bbox = draw.textbbox((0, 0), candidate, font=font)
+        if bbox[2] - bbox[0] <= max_width:
+            current = candidate
+            continue
+        if current:
+            lines.append(current)
+        current = word
+        if len(lines) >= max_lines:
+            break
+    if current and len(lines) < max_lines:
+        lines.append(current)
+    if len(lines) == max_lines and len(" ".join(words)) > len(" ".join(lines)):
+        lines[-1] = f"{lines[-1].rstrip('., ')}..."
+    return lines
+
+
+def _line_height(font) -> int:
+    bbox = font.getbbox("Ag")
+    return bbox[3] - bbox[1]
+
+
+def _font(size: int, bold: bool = False):
+    try:
+        from PIL import ImageFont
+    except ImportError as exc:
+        raise ImportError("Pillow is required for layout poster rendering. Run pip install -r requirements.txt.") from exc
+
+    candidates = [
+        "C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/segoeuib.ttf" if bold else "C:/Windows/Fonts/segoeui.ttf",
+    ]
+    for candidate in candidates:
+        try:
+            return ImageFont.truetype(candidate, size=size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def _hex_to_rgba(value: str, fallback: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+    raw = value.strip().lstrip("#")
+    if len(raw) != 6:
+        return fallback
+    try:
+        return (
+            int(raw[0:2], 16),
+            int(raw[2:4], 16),
+            int(raw[4:6], 16),
+            255,
+        )
+    except ValueError:
+        return fallback
 
 
 def _build_poster_prompt(

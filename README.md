@@ -9,6 +9,8 @@ AI Marketing Partner is planned as a dashboard and agent system for small busine
 - Firebase Storage uploads for brand, reference, product, and generated poster images
 - Project memory and architecture docs at the root
 
+The official phase map and remaining roadmap live in `plan.md`. Current completed scope is Phases 1-15; pending roadmap includes analytics, recommendations, SEO, blogs, campaign planning, video/reels, trend intelligence, agent logs, real reference-image generation, and sales intelligence.
+
 ## Project Layout
 
 ```text
@@ -108,7 +110,19 @@ The token needs permission to make Inference Providers calls. If the image provi
 
 Image uploads and generated posters use Firebase Storage when `FIREBASE_STORAGE_BUCKET` is configured. Brand logo/avatar uploads, reference images, product image galleries, and generated poster files are routed through the backend so secrets stay server-side. Brand kit, uploaded product images, and labelled reference images are used as active generation context. When a brand logo is uploaded and saved in the business profile, generated raster posters are stamped with that logo at the top before being stored. When product images exist, the first uploaded product image is composited into the final raster poster.
 
-Social publishing is currently a safe mock workflow. The Calendar **Publish Now** button records a mock platform post id and marks the scheduled/generated post as published. It does not post to Instagram or Facebook until a real Meta publishing adapter is added.
+Social publishing defaults to a safe mock workflow. The Calendar **Publish Now** button marks the scheduled/generated post as published and records a platform post id. When Meta credentials are configured, the same button publishes through Meta Graph API.
+
+Meta publishing can be enabled server-side with:
+
+```text
+SOCIAL_PROVIDER=meta
+META_GRAPH_API_VERSION=v23.0
+META_PAGE_ID=<facebook-page-id>
+META_PAGE_ACCESS_TOKEN=<page-access-token>
+META_INSTAGRAM_BUSINESS_ACCOUNT_ID=<instagram-business-account-id>
+```
+
+When configured, **Publish Now** uses the latest generated poster for the scheduled post and publishes through Meta Graph API. Without these values, the app keeps using the mock publisher.
 
 ## Frontend
 

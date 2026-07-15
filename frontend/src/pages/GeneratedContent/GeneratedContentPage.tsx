@@ -4,8 +4,12 @@ import {
   Box,
   Button,
   Chip,
+  FormControl,
   Grid,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   TextField,
   Typography,
@@ -21,6 +25,7 @@ import {
   listGeneratedPosters,
   listGeneratedPosts,
   updateGeneratedPost,
+  PosterTemplate,
 } from "../../services/api";
 
 function splitList(value: string) {
@@ -39,6 +44,7 @@ export function GeneratedContentPage() {
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState("");
   const [posterPrompt, setPosterPrompt] = useState("");
+  const [posterTemplate, setPosterTemplate] = useState<PosterTemplate>("auto");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -177,7 +183,7 @@ export function GeneratedContentPage() {
         poster_prompt: posterPrompt,
         status: selected.status,
       });
-      const poster = await generatePoster(token, updated.post_id);
+      const poster = await generatePoster(token, updated.post_id, posterTemplate);
 
       setPosts((current) =>
         current.map((post) => (post.post_id === updated.post_id ? updated : post)),
@@ -326,6 +332,24 @@ export function GeneratedContentPage() {
                   </Button>
                 </Stack>
                 <Stack spacing={2}>
+                  <FormControl fullWidth>
+                    <InputLabel id="poster-template-label">Poster template</InputLabel>
+                    <Select
+                      disabled={saving || deleting || generatingPoster}
+                      label="Poster template"
+                      labelId="poster-template-label"
+                      onChange={(event) =>
+                        setPosterTemplate(event.target.value as PosterTemplate)
+                      }
+                      value={posterTemplate}
+                    >
+                      <MenuItem value="auto">Auto</MenuItem>
+                      <MenuItem value="product_spotlight">Product spotlight</MenuItem>
+                      <MenuItem value="educational">Educational</MenuItem>
+                      <MenuItem value="offer">Offer</MenuItem>
+                      <MenuItem value="festival">Festival / seasonal</MenuItem>
+                    </Select>
+                  </FormControl>
                   <Button
                     disabled={saving || deleting || generatingPoster}
                     onClick={generateSelectedPoster}
@@ -343,7 +367,9 @@ export function GeneratedContentPage() {
                         />
                         <Chip
                           label={
-                            selectedPoster.provider === "huggingface"
+                            selectedPoster.provider === "layout"
+                              ? "Generated with brand layout engine"
+                              : selectedPoster.provider === "huggingface"
                               ? "Generated with Hugging Face FLUX"
                               : selectedPoster.provider === "gemini"
                                 ? "Generated with Gemini image"

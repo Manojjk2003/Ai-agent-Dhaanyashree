@@ -511,6 +511,18 @@ class FirebaseService:
         posters = [self._generated_poster_from_doc(user, doc) for doc in docs]
         return sorted(posters, key=lambda poster: poster.created_at, reverse=True)
 
+    def get_latest_generated_poster_for_post(
+        self,
+        user: CurrentUser,
+        post_id: str,
+    ) -> GeneratedPosterResponse | None:
+        posters = [
+            poster
+            for poster in self.list_generated_posters(user)
+            if poster.post_id == post_id
+        ]
+        return posters[0] if posters else None
+
     def create_generated_poster(
         self,
         user: CurrentUser,

@@ -3,11 +3,19 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-PosterGenerationSource = Literal["gemini", "huggingface", "fallback"]
+PosterGenerationSource = Literal["layout", "gemini", "huggingface", "fallback"]
+PosterTemplate = Literal[
+    "auto",
+    "product_spotlight",
+    "educational",
+    "offer",
+    "festival",
+]
 
 
 class GeneratedPosterCreate(BaseModel):
     post_id: str = Field(..., min_length=1)
+    template: PosterTemplate = "auto"
 
 
 class GeneratedPosterResponse(BaseModel):

@@ -41,6 +41,7 @@ def generate_poster(
         generated_post,
         user.uid,
         visual_context=visual_context,
+        template=request.template,
     )
     return firebase_service.create_generated_poster(
         user,

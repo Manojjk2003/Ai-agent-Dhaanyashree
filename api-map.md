@@ -6,7 +6,7 @@ Update this file whenever an endpoint is added, removed, renamed, or its request
 
 ## Current State
 
-Phase 13 backend scaffold exists. `GET /health`, `GET /me`, protected asset upload, business profile APIs with brand kit fields, product APIs with image galleries, reference image APIs, generated content APIs, schedule APIs, poster APIs, mock social publish API, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. Brand, reference, product, and generated poster images are stored in Firebase Storage when configured. Brand kit, uploaded product images, and labelled reference image memory are active generation context. Generated raster posters are stamped with the uploaded brand logo and composited with uploaded product imagery before storage when those assets exist.
+Phase 14 backend scaffold exists. `GET /health`, `GET /me`, protected asset upload, business profile APIs with brand kit fields, product APIs with image galleries, reference image APIs, generated content APIs, schedule APIs, poster APIs, mock social publish API, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. Brand, reference, product, and generated poster images are stored in Firebase Storage when configured. Brand kit, uploaded product images, and labelled reference image memory are active generation context. Poster generation supports template-based branded layouts and stores the final raster poster when configured.
 
 ## API Inventory
 
@@ -39,7 +39,7 @@ Phase 13 backend scaffold exists. `GET /health`, `GET /me`, protected asset uplo
 | `GET` | `/posters` | List generated posters | Content Review |
 | `POST` | `/posters/generate` | Generate poster for generated content | Content Review |
 | `POST` | `/social/schedule` | Publish/schedule through real social platform API, future | Social page |
-| `POST` | `/social/publish-now` | Mock publish scheduled content and mark it published | Calendar page |
+| `POST` | `/social/publish-now` | Publish scheduled content through Meta when configured, otherwise mock, and mark it published | Calendar page |
 | `GET` | `/analytics` | Read performance summary | Dashboard, Analytics page |
 | `GET` | `/recommendations` | Read recommended actions | Dashboard |
 | `GET` | `/agent/logs` | List agent logs | Agent Logs page |
@@ -453,7 +453,7 @@ Response:
 
 ### `POST /social/publish-now`
 
-Purpose: publish a scheduled post now. Current MVP records a mock publish response and marks the schedule plus source generated post as `published`. Real Meta publishing can replace the mock adapter later without changing this API shape.
+Purpose: publish a scheduled post now. The backend loads the latest generated poster for the source post. When `SOCIAL_PROVIDER=meta` and Meta credentials are configured, it publishes through Meta Graph API. Otherwise, it records a mock publish response. The schedule plus source generated post are marked as `published` on success.
 
 Request:
 
@@ -486,9 +486,9 @@ Response:
     "created_at": "2026-07-14T10:00:00+00:00",
     "updated_at": "2026-07-14T10:00:00+00:00"
   },
-  "provider": "mock",
-  "platform_post_id": "mock_instagram_abc123",
-  "message": "Mock publish completed. Connect a real social account before enabling live publishing."
+  "provider": "meta",
+  "platform_post_id": "instagram:1789...,facebook:1234...",
+  "message": "Published through Meta Graph API."
 }
 ```
 
@@ -510,7 +510,7 @@ Response:
     "image_url": "http://localhost:8000/static/posters/poster_123.png",
     "storage_path": "generated/posters/poster_123.png",
     "mime_type": "image/png",
-    "provider": "huggingface",
+    "provider": "layout",
     "error_message": null,
     "status": "generated",
     "created_at": "2026-07-14T10:00:00+00:00",
@@ -521,15 +521,18 @@ Response:
 
 ### `POST /posters/generate`
 
-Purpose: generate a poster image from a generated post's poster prompt. The configured image provider is used when available. Supported providers are Hugging Face FLUX, Gemini image generation, and fallback SVG poster generation.
+Purpose: generate a poster image from a generated post. The default path uses the controlled brand layout renderer when business visual context exists. Older provider paths support Hugging Face FLUX, Gemini image generation, and fallback SVG poster generation when layout context is unavailable.
 
 Request:
 
 ```json
 {
-  "post_id": "post_123"
+  "post_id": "post_123",
+  "template": "auto"
 }
 ```
+
+`template` can be `auto`, `product_spotlight`, `educational`, `offer`, or `festival`.
 
 Response: same object as `GET /posters`.
 

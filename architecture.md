@@ -6,7 +6,7 @@ Update this file whenever system boundaries, services, agents, deployment shape,
 
 ## Current State
 
-Phase 13 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile with brand kit uploads, product management with multiple uploaded product images, labelled reference image memory with uploads, daily plan generation, generated content review, manual content calendar, AI schedule time recommendation, poster generation/preview, and mock publish controls. The backend has health, current-user, asset upload, business profile, product, reference image, generated content, schedule, poster, mock social publishing, and daily-plan routes. Firebase Admin verification, Firebase Storage uploads, and Firestore business/product/reference-image/generated-content/scheduled-content/generated-poster persistence are implemented. Daily plan generation and schedule recommendation try Gemini when configured and fall back to deterministic generation when Gemini is unavailable. Content and poster prompts now use brand kit, business contact details, product images, product notes, and reference image labels/notes as active visual memory. Poster generation supports Hugging Face FLUX, Gemini image generation, or local fallback SVG; raster posters are uploaded to Firebase Storage and stamped with configured brand logo plus uploaded product imagery when available.
+Phase 15 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile with brand kit uploads, product management with multiple uploaded product images, labelled reference image memory with uploads, daily plan generation, generated content review, manual content calendar, AI schedule time recommendation, poster generation/preview, template-based poster layout generation, and publish controls. The backend has health, current-user, asset upload, business profile, product, reference image, generated content, schedule, poster, social publishing, and daily-plan routes. Firebase Admin verification, Firebase Storage uploads, and Firestore business/product/reference-image/generated-content/scheduled-content/generated-poster persistence are implemented. Daily plan generation and schedule recommendation try Gemini when configured and fall back to deterministic generation when Gemini is unavailable. Content and poster prompts now use brand kit, business contact details, product images, product notes, and reference image labels/notes as active visual memory. Poster generation defaults to a controlled layout renderer. Social publishing defaults to mock and can publish through Meta Graph API when `SOCIAL_PROVIDER=meta` plus Meta credentials are configured.
 
 ## Intended System Map
 
@@ -35,7 +35,7 @@ FastAPI Backend
   |       +--> Generated Content APIs: implemented
   |       +--> Schedule APIs: implemented
   |       +--> Poster APIs: implemented
-  |       +--> Social APIs: mock publish implemented
+  |       +--> Social APIs: Meta publishing foundation with mock fallback
   |       +--> Daily Plan API: implemented
   |       +--> Analytics APIs: planned
   |       `--> Agent Log APIs: planned
@@ -51,7 +51,7 @@ FastAPI Backend
   |       +--> Image Service: Hugging Face FLUX, Gemini image generation, logo overlay, plus fallback SVG
   |       +--> Storage Service: Firebase Storage uploads
   |       +--> Firebase Service: Firestore/Auth integration
-  |       +--> Social Service: mock publisher boundary
+  |       +--> Social Service: Meta Graph API adapter with mock fallback
   |       `--> Scheduler Service: placeholder
   |
   v
@@ -262,17 +262,13 @@ User clicks Generate Poster
 Backend loads generated post, business profile, selected product, and reference images
   |
   v
-Image service checks IMAGE_PROVIDER
+Image service receives visual context and template
   |
-  +--> If Hugging Face FLUX succeeds, generate PNG poster
+  +--> Layout renderer creates controlled branded PNG when business visual context exists
   |
-  +--> If Gemini succeeds, generate PNG poster
+  +--> Older image provider path can use Hugging Face FLUX/Gemini/fallback when layout context is unavailable
   |
   `--> If provider fails, save fallback SVG poster with error_message
-  |
-  +--> If product image exists and output is raster, overlay product image in final composition
-  |
-  +--> If brand logo URL exists and output is raster, overlay logo at top
   |
   v
 Backend writes generated_posters metadata
@@ -314,16 +310,16 @@ User clicks Publish Now on a scheduled post
 POST /social/publish-now
   |
   v
-Backend loads scheduled_posts document
+Backend loads scheduled_posts document and latest generated poster
   |
   v
-Social service records mock provider response
+Social service publishes through Meta Graph API when configured, otherwise records mock response
   |
   v
 Backend marks scheduled post and source generated post as published
   |
   v
-Calendar shows published timestamp and mock platform post id
+Calendar shows published timestamp, provider, and platform post id
 ```
 
 ## Background Jobs

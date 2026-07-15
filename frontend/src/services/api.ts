@@ -244,12 +244,19 @@ export type GeneratedPosterResponse = {
   image_url: string;
   storage_path: string;
   mime_type: string;
-  provider: "gemini" | "huggingface" | "fallback";
+  provider: "layout" | "gemini" | "huggingface" | "fallback";
   error_message: string | null;
   status: "generated";
   created_at: string;
   updated_at: string;
 };
+
+export type PosterTemplate =
+  | "auto"
+  | "product_spotlight"
+  | "educational"
+  | "offer"
+  | "festival";
 
 export async function getHealth() {
   return request<{ status: string; service: string }>("/health");
@@ -395,12 +402,17 @@ export async function listGeneratedPosters(token: string) {
   return request<GeneratedPosterResponse[]>("/posters", { token });
 }
 
-export async function generatePoster(token: string, postId: string) {
+export async function generatePoster(
+  token: string,
+  postId: string,
+  template: PosterTemplate = "auto",
+) {
   return request<GeneratedPosterResponse>("/posters/generate", {
     token,
     method: "POST",
     body: {
       post_id: postId,
+      template,
     },
   });
 }

@@ -6,7 +6,7 @@ Update this file whenever important modules are added, removed, renamed, or thei
 
 ## Current State
 
-Phase 13 source files exist. This file tracks the current scaffold graph and the intended module dependency graph.
+Phase 14 source files exist. This file tracks the current scaffold graph and the intended module dependency graph.
 
 ## Current Backend Dependency Graph
 
@@ -120,7 +120,7 @@ backend/app/services/image_service.py
   -> backend/app/schemas/reference_image.py
   -> backend/app/services/storage_service.py
   -> Hugging Face Inference Providers through huggingface_hub
-  -> Pillow for image object serialization, brand logo overlay, and product image composition
+  -> Pillow for image object serialization, controlled poster layout rendering, brand logo overlay, and product image composition
   -> Gemini Interactions API
 
 backend/app/dependencies.py
@@ -141,7 +141,9 @@ backend/app/services/firebase_service.py
 
 backend/app/services/social_service.py
   -> backend/app/schemas/scheduled_post.py
-  -> mock publisher adapter
+  -> backend/app/schemas/generated_poster.py
+  -> backend/app/config.py
+  -> Meta Graph API adapter with mock fallback
 
 backend/app/services/storage_service.py
   -> backend/app/config.py
@@ -257,7 +259,7 @@ These files should be changed carefully once created:
 - `backend/app/graphs/daily_marketing_graph.py`: core MVP agent workflow placeholder. Created in Phase 1.
 - `backend/app/services/firebase_service.py`: database/storage integration.
 - `backend/app/services/llm_service.py`: model provider abstraction.
-- `backend/app/services/social_service.py`: mock publishing behavior and future real social adapter boundary.
+- `backend/app/services/social_service.py`: Meta Graph API publishing adapter with mock fallback.
 - `frontend/src/app/`: frontend shell and theme. Created in Phase 1.
 - `frontend/src/lib/firebase.ts`: Firebase Web SDK initialization. Created after Firebase project config was supplied.
 - `frontend/src/services/api.ts`: frontend/backend API contract. Created in Phase 1.
