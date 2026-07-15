@@ -7,6 +7,13 @@ type RequestOptions = {
   body?: unknown;
 };
 
+type UploadAssetType =
+  | "brand_logo"
+  | "brand_avatar"
+  | "reference_image"
+  | "product_image"
+  | "generated_poster";
+
 async function request<T>(path: string, options: RequestOptions = {}) {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -34,13 +41,46 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   return response.json() as Promise<T>;
 }
 
+async function uploadRequest<T>(path: string, token: string, body: FormData) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
 export type BusinessProfile = {
   business_name: string;
   industry: string;
   description: string;
+  website_url: string;
+  address: string;
+  phone_number: string;
+  email: string;
+  license_number: string;
   target_audience: string[];
   brand_tone: string;
   goals: string[];
+  brand_kit: {
+    logo_url: string;
+    avatar_url: string;
+    primary_color: string;
+    secondary_color: string;
+    accent_color: string;
+    font_family: string;
+    heading_font_family: string;
+    visual_style: string[];
+    brand_keywords: string[];
+  };
 };
 
 export type BusinessProfileResponse = BusinessProfile & {
@@ -58,12 +98,43 @@ export type ProductInput = {
   price: number | null;
   target_audience: string[];
   image_url: string;
+  image_urls: string[];
+  image_notes: string;
   is_active: boolean;
 };
 
 export type ProductResponse = ProductInput & {
   product_id: string;
   business_id: string;
+};
+
+export type ReferenceImageType =
+  | "ingredient"
+  | "product"
+  | "packaging"
+  | "style"
+  | "other";
+
+export type ReferenceImageInput = {
+  name: string;
+  image_url: string;
+  reference_type: ReferenceImageType;
+  labels: string[];
+  notes: string;
+};
+
+export type ReferenceImageResponse = ReferenceImageInput & {
+  reference_image_id: string;
+  business_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AssetUploadResponse = {
+  image_url: string;
+  storage_path: string;
+  content_type: string;
+  file_name: string;
 };
 
 export type DailyPlanResponse = {
@@ -82,7 +153,110 @@ export type DailyPlanResponse = {
   caption: string;
   hashtags: string[];
   poster_prompt: string | null;
+  generation_source: "gemini" | "fallback";
 };
+
+export type GeneratedPostStatus =
+  | "draft"
+  | "ready_for_review"
+  | "approved"
+  | "rejected"
+  | "scheduled"
+  | "published";
+
+export type GeneratedPostResponse = {
+  post_id: string;
+  business_id: string;
+  run_id: string;
+  content_plan_id: string;
+  product_id: string;
+  product_name: string;
+  selection_reason: string;
+  content_type: string;
+  content_idea: string;
+  caption: string;
+  hashtags: string[];
+  poster_prompt: string | null;
+  platforms: string[];
+  run_date: string;
+  status: GeneratedPostStatus;
+  generation_source: "gemini" | "fallback";
+  scheduled_post_id: string | null;
+  scheduled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ScheduledPostInput = {
+  post_id: string;
+  scheduled_at: string;
+  platforms: string[];
+};
+
+export type ScheduleRecommendationInput = {
+  post_id: string;
+  target_date?: string;
+  platforms: string[];
+};
+
+export type ScheduleRecommendationResponse = {
+  recommended_at: string;
+  reason: string;
+  confidence: number;
+  alternative_slots: string[];
+  generation_source: "gemini" | "fallback";
+};
+
+export type ScheduledPostResponse = {
+  scheduled_post_id: string;
+  business_id: string;
+  post_id: string;
+  product_id: string;
+  product_name: string;
+  content_type: string;
+  caption: string;
+  hashtags: string[];
+  poster_prompt: string | null;
+  platforms: string[];
+  scheduled_at: string;
+  published_at: string | null;
+  platform_post_id: string | null;
+  error_message: string | null;
+  status: "scheduled" | "published" | "cancelled" | "failed";
+  created_at: string;
+  updated_at: string;
+};
+
+export type PublishNowResponse = {
+  scheduled_post: ScheduledPostResponse;
+  provider: "mock" | "meta";
+  platform_post_id: string;
+  message: string;
+};
+
+export type GeneratedPosterResponse = {
+  poster_id: string;
+  business_id: string;
+  post_id: string;
+  product_id: string;
+  product_name: string;
+  prompt: string;
+  image_url: string;
+  storage_path: string;
+  mime_type: string;
+  provider: "layout" | "gemini" | "huggingface" | "fallback";
+  error_message: string | null;
+  status: "generated";
+  created_at: string;
+  updated_at: string;
+};
+
+export type PosterTemplate =
+  | "auto"
+  | "product_spotlight"
+  | "educational"
+  | "offer"
+  | "festival";
 
 export async function getHealth() {
   return request<{ status: string; service: string }>("/health");
@@ -134,6 +308,61 @@ export async function deleteProduct(token: string, productId: string) {
   });
 }
 
+export async function listReferenceImages(token: string) {
+  return request<ReferenceImageResponse[]>("/reference-images", { token });
+}
+
+export async function createReferenceImage(
+  token: string,
+  referenceImage: ReferenceImageInput,
+) {
+  return request<ReferenceImageResponse>("/reference-images", {
+    token,
+    method: "POST",
+    body: referenceImage,
+  });
+}
+
+export async function updateReferenceImage(
+  token: string,
+  referenceImageId: string,
+  referenceImage: Partial<ReferenceImageInput>,
+) {
+  return request<ReferenceImageResponse>(
+    `/reference-images/${referenceImageId}`,
+    {
+      token,
+      method: "PATCH",
+      body: referenceImage,
+    },
+  );
+}
+
+export async function deleteReferenceImage(
+  token: string,
+  referenceImageId: string,
+) {
+  return request<null>(`/reference-images/${referenceImageId}`, {
+    token,
+    method: "DELETE",
+  });
+}
+
+export async function uploadAsset(
+  token: string,
+  assetType: UploadAssetType,
+  file: File,
+  ownerId?: string,
+) {
+  const body = new FormData();
+  body.append("asset_type", assetType);
+  if (ownerId) {
+    body.append("owner_id", ownerId);
+  }
+  body.append("file", file);
+  return uploadRequest<AssetUploadResponse>("/assets/upload", token, body);
+}
+
 export async function runDailyPlan(token: string) {
   return request<DailyPlanResponse>("/agent/run-daily-plan", {
     token,
@@ -142,6 +371,97 @@ export async function runDailyPlan(token: string) {
       run_date: new Date().toISOString().slice(0, 10),
       platforms: ["instagram"],
       require_poster: true,
+    },
+  });
+}
+
+export async function listGeneratedPosts(token: string) {
+  return request<GeneratedPostResponse[]>("/content/posts", { token });
+}
+
+export async function updateGeneratedPost(
+  token: string,
+  postId: string,
+  post: Partial<Pick<GeneratedPostResponse, "caption" | "hashtags" | "poster_prompt" | "status">>,
+) {
+  return request<GeneratedPostResponse>(`/content/posts/${postId}`, {
+    token,
+    method: "PATCH",
+    body: post,
+  });
+}
+
+export async function deleteGeneratedPost(token: string, postId: string) {
+  return request<null>(`/content/posts/${postId}`, {
+    token,
+    method: "DELETE",
+  });
+}
+
+export async function listGeneratedPosters(token: string) {
+  return request<GeneratedPosterResponse[]>("/posters", { token });
+}
+
+export async function generatePoster(
+  token: string,
+  postId: string,
+  template: PosterTemplate = "auto",
+) {
+  return request<GeneratedPosterResponse>("/posters/generate", {
+    token,
+    method: "POST",
+    body: {
+      post_id: postId,
+      template,
+    },
+  });
+}
+
+export async function listScheduledPosts(token: string) {
+  return request<ScheduledPostResponse[]>("/schedule/posts", { token });
+}
+
+export async function createScheduledPost(
+  token: string,
+  scheduledPost: ScheduledPostInput,
+) {
+  return request<ScheduledPostResponse>("/schedule/posts", {
+    token,
+    method: "POST",
+    body: scheduledPost,
+  });
+}
+
+export async function recommendScheduleTime(
+  token: string,
+  recommendation: ScheduleRecommendationInput,
+) {
+  return request<ScheduleRecommendationResponse>("/schedule/recommend-time", {
+    token,
+    method: "POST",
+    body: recommendation,
+  });
+}
+
+export async function deleteScheduledPost(
+  token: string,
+  scheduledPostId: string,
+) {
+  return request<null>(`/schedule/posts/${scheduledPostId}`, {
+    token,
+    method: "DELETE",
+  });
+}
+
+export async function publishScheduledPostNow(
+  token: string,
+  scheduledPostId: string,
+) {
+  return request<PublishNowResponse>("/social/publish-now", {
+    token,
+    method: "POST",
+    body: {
+      scheduled_post_id: scheduledPostId,
     },
   });
 }

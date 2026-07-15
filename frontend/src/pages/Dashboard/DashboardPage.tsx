@@ -22,9 +22,9 @@ import {
 type ApiStatus = "checking" | "online" | "offline";
 
 const nextActions = [
-  "Generate today's marketing plan from business profile and products",
-  "Review caption, hashtags, and poster prompt",
-  "Save generated content to a content calendar",
+  "Review generated content in the Content tab",
+  "Approve content, then schedule it in the Calendar tab",
+  "Connect scheduled posts to real social publishing",
 ];
 
 export function DashboardPage() {
@@ -147,7 +147,7 @@ export function DashboardPage() {
             <CalendarDays size={24} />
             <Typography variant="h2">Calendar</Typography>
             <Typography color="text.secondary">
-              Schedule 7-day and 30-day campaigns for each business.
+              Schedule approved posts into a manual publishing queue.
             </Typography>
             <Button variant="outlined" disabled>
               Open Calendar
@@ -169,6 +169,15 @@ export function DashboardPage() {
               <Typography color="text.secondary">
                 {dailyPlan.selection_reason}
               </Typography>
+              <Chip
+                label={
+                  dailyPlan.generation_source === "gemini"
+                    ? "Generated with Gemini"
+                    : "Generated with fallback rules"
+                }
+                size="small"
+                sx={{ alignSelf: "flex-start" }}
+              />
             </Stack>
 
             <Stack spacing={1}>
@@ -185,10 +194,13 @@ export function DashboardPage() {
                 <strong>Hashtags:</strong> {dailyPlan.hashtags.join(" ")}
               </Typography>
               {dailyPlan.poster_prompt ? (
-                <Typography>
-                  <strong>Poster prompt:</strong> {dailyPlan.poster_prompt}
-                </Typography>
+              <Typography>
+                <strong>Poster prompt:</strong> {dailyPlan.poster_prompt}
+              </Typography>
               ) : null}
+              <Typography color="text.secondary">
+                Saved to Generated Content for review.
+              </Typography>
             </Stack>
           </Stack>
         </Paper>

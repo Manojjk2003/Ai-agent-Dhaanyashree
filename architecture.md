@@ -6,7 +6,7 @@ Update this file whenever system boundaries, services, agents, deployment shape,
 
 ## Current State
 
-Phase 4 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile, product management, and daily plan generation. The backend has health, current-user, business profile, product, and daily-plan routes. Firebase Admin verification and Firestore business/product persistence are implemented. Daily plan generation is deterministic for now and uses the same graph boundary where LangGraph nodes will be added later.
+Phase 15 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile with brand kit uploads, product management with multiple uploaded product images, labelled reference image memory with uploads, daily plan generation, generated content review, manual content calendar, AI schedule time recommendation, poster generation/preview, template-based poster layout generation, and publish controls. The backend has health, current-user, asset upload, business profile, product, reference image, generated content, schedule, poster, social publishing, and daily-plan routes. Firebase Admin verification, Firebase Storage uploads, and Firestore business/product/reference-image/generated-content/scheduled-content/generated-poster persistence are implemented. Daily plan generation and schedule recommendation try Gemini when configured and fall back to deterministic generation when Gemini is unavailable. Content and poster prompts now use brand kit, business contact details, product images, product notes, and reference image labels/notes as active visual memory. Poster generation defaults to a controlled layout renderer. Social publishing defaults to mock and can publish through Meta Graph API when `SOCIAL_PROVIDER=meta` plus Meta credentials are configured.
 
 ## Intended System Map
 
@@ -28,26 +28,30 @@ FastAPI Backend
   +--> API Routes
   |       +--> Health API: implemented
   |       +--> Auth API: implemented
+  |       +--> Asset Upload API: implemented
   |       +--> Business/Profile APIs: implemented
   |       +--> Product APIs: implemented
+  |       +--> Reference Image APIs: implemented
+  |       +--> Generated Content APIs: implemented
+  |       +--> Schedule APIs: implemented
+  |       +--> Poster APIs: implemented
+  |       +--> Social APIs: Meta publishing foundation with mock fallback
   |       +--> Daily Plan API: implemented
-  |       +--> Content APIs: planned
-  |       +--> Poster APIs: planned
-  |       +--> Social APIs: planned
   |       +--> Analytics APIs: planned
   |       `--> Agent Log APIs: planned
   |
   +--> LangGraph Workflows
-  |       +--> Daily Marketing Graph: deterministic implementation
+  |       +--> Daily Marketing Graph: Gemini-backed implementation with brand/product visual memory and fallback
   |       +--> SEO Graph
   |       +--> Analytics Recommendation Graph
   |       `--> Future Video Graph
   |
   +--> Services
-  |       +--> LLM Service: placeholder
-  |       +--> Image Service: placeholder
-  |       +--> Firebase Service: placeholder
-  |       +--> Social Service: placeholder
+  |       +--> LLM Service: Gemini Interactions API integration
+  |       +--> Image Service: Hugging Face FLUX, Gemini image generation, logo overlay, plus fallback SVG
+  |       +--> Storage Service: Firebase Storage uploads
+  |       +--> Firebase Service: Firestore/Auth integration
+  |       +--> Social Service: Meta Graph API adapter with mock fallback
   |       `--> Scheduler Service: placeholder
   |
   v
@@ -197,13 +201,125 @@ POST /agent/run-daily-plan
 Backend verifies Firebase token
   |
   v
-Backend loads one business profile and products
+Backend loads one business profile, products, and labelled reference images
   |
   v
-Product selection, content strategy, caption, hashtag, and prompt agents run
+Product selection agent chooses product
+  |
+  v
+LLM service tries Gemini with business, brand kit, product memory, and reference visual memory
+  |
+  +--> If Gemini succeeds, use LLM caption, hashtags, and poster prompt
+  |
+  `--> If Gemini fails, run deterministic content strategy, caption, hashtag, and prompt agents
   |
   v
 Backend returns selected product, idea, caption, hashtags, and poster prompt
+  |
+  v
+Generated post is saved in the top-level generated_posts collection with business_id
+  |
+  v
+Content review screen can edit and approve or reject it
+```
+
+Current calendar behavior:
+
+```text
+Content review screen
+  |
+  v
+User approves generated content
+  |
+  v
+Calendar screen lists approved generated posts
+  |
+  v
+User can request AI recommended posting time
+  |
+  v
+Gemini/fallback recommends time, reason, confidence, and alternatives
+  |
+  v
+User accepts or edits date/time and schedules post
+  |
+  v
+Backend writes scheduled_posts document and marks generated post as scheduled
+  |
+  v
+Calendar screen shows manual scheduled queue
+```
+
+Current poster behavior:
+
+```text
+Content review screen
+  |
+  v
+User clicks Generate Poster
+  |
+  v
+Backend loads generated post, business profile, selected product, and reference images
+  |
+  v
+Image service receives visual context and template
+  |
+  +--> Layout renderer creates controlled branded PNG when business visual context exists
+  |
+  +--> Older image provider path can use Hugging Face FLUX/Gemini/fallback when layout context is unavailable
+  |
+  `--> If provider fails, save fallback SVG poster with error_message
+  |
+  v
+Backend writes generated_posters metadata
+  |
+  v
+Frontend previews poster from Firebase Storage URL, or /static/posters only if Storage upload fails locally
+```
+
+Current asset upload behavior:
+
+```text
+Business, Products, or References screen
+  |
+  v
+User selects local image file
+  |
+  v
+POST /assets/upload multipart request with Firebase ID token
+  |
+  v
+Backend stores file in Firebase Storage
+  |
+  v
+Backend returns download URL and storage path
+  |
+  v
+Frontend saves URL into brand kit, product gallery, or reference image record
+```
+
+Current social publish behavior:
+
+```text
+Calendar screen
+  |
+  v
+User clicks Publish Now on a scheduled post
+  |
+  v
+POST /social/publish-now
+  |
+  v
+Backend loads scheduled_posts document and latest generated poster
+  |
+  v
+Social service publishes through Meta Graph API when configured, otherwise records mock response
+  |
+  v
+Backend marks scheduled post and source generated post as published
+  |
+  v
+Calendar shows published timestamp, provider, and platform post id
 ```
 
 ## Background Jobs
@@ -244,6 +360,7 @@ Future:
 - Keep agent logs as first-class data so outputs are inspectable.
 - Use `businessId` as the main partition key for multi-business support.
 - Store generated assets in Firebase Storage and metadata in Firestore.
+- Keep local poster file fallback only as a development safety net when Firebase Storage is unavailable.
 
 ## Unknowns
 
@@ -251,4 +368,4 @@ Future:
 - Final image generation provider.
 - Final hosting provider.
 - Social platform permission status.
-- Whether the project will support multiple businesses per user in MVP.
+- Whether agency-style multi-business support is needed after the one-business MVP.

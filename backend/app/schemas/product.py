@@ -10,6 +10,8 @@ class ProductBase(BaseModel):
     price: float | None = Field(default=None, ge=0)
     target_audience: list[str] = Field(default_factory=list)
     image_url: str = ""
+    image_urls: list[str] = Field(default_factory=list)
+    image_notes: str = ""
     is_active: bool = True
 
 
@@ -26,6 +28,8 @@ class ProductUpdate(BaseModel):
     price: float | None = Field(default=None, ge=0)
     target_audience: list[str] | None = None
     image_url: str | None = None
+    image_urls: list[str] | None = None
+    image_notes: str | None = None
     is_active: bool | None = None
 
 

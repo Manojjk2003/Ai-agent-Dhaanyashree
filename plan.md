@@ -1,4 +1,438 @@
-﻿## Phase 4 Setup Status
+## Official Phase Map
+
+This is the frozen source of truth for phase numbering. The earlier conversation moved quickly, so this table clarifies what has actually been completed and what remains.
+
+### Completed Phases
+
+| Phase | Status | What it means |
+|---|---|---|
+| 1 | Done | Project scaffold: FastAPI + React/Vite structure |
+| 2 | Done | Firebase Auth + protected backend |
+| 3 | Done | One business profile |
+| 4 | Done | Products under one business |
+| 5 | Done | Daily plan generation |
+| 6 | Done | Generated content review/edit/approve/reject |
+| 7 | Done | Gemini text generation with fallback |
+| 8 | Done | Calendar scheduling + AI time recommendation |
+| 9 | Done | Poster generation with Hugging Face/Gemini/fallback |
+| 10 | Done | Mock social publish foundation |
+| 11 | Done | Brand kit + reference images + product image fields |
+| 12 | Done | Firebase Storage uploads for logo/product/reference/poster images |
+| 13 | Done | Brand-grounded generation: AI uses brand/product/reference memory and final poster overlays logo/product image |
+| 14 | Done | Better poster layout engine: controlled Canva-like layout with logo, product photo, headline, CTA, colors, and fonts |
+| 15 | Done | Real social publishing foundation: Meta Graph API adapter for Instagram/Facebook with mock fallback |
+
+Why the numbering jumped: we were around Phase 8/9, then quickly added poster image generation, mock social publishing, brand kit, uploads, and brand-grounded generation. That work is now normalized into Phases 9-13 above.
+
+### Current Finished Foundation
+
+- Business profile.
+- Products.
+- Brand kit.
+- Reference images.
+- Image uploads.
+- Daily content generation.
+- Gemini/fallback captions.
+- Poster generation.
+- Calendar scheduling.
+- AI recommended posting time.
+- Mock publishing.
+- Brand-grounded poster/context generation.
+
+### Remaining Major Roadmap
+
+| Future Phase | Feature | What it will do |
+|---|---|---|
+| 16 | Analytics | Track posts, status, engagement, published history |
+| 17 | Recommendations | AI tells what to post next based on analytics/products |
+| 18 | SEO website module | Generate SEO keywords, meta title, meta description, website copy, FAQs |
+| 19 | Blog/content module | Generate blog posts, product pages, recipe/education articles |
+| 20 | Campaign planner | 7-day / 30-day content calendar campaigns |
+| 21 | Video/Reels generation | Generate reel script, scenes, voiceover text, video prompt/assets |
+| 22 | Trend intelligence | Festival/season/trend-aware content ideas |
+| 23 | Agent logs/memory audit | Show why AI selected product/content/time |
+| 24 | Real image reference model | True image-to-image/reference-based image generation |
+| 25 | Sales/order intelligence | Use sales/product performance to guide marketing |
+
+Recommended next phase: Phase 16, Analytics, after configuring and testing Meta credentials.
+
+## Phase 15 Setup Status
+
+Status: real social publishing foundation created.
+
+Created:
+
+- Meta Graph API publishing adapter in `backend/app/services/social_service.py`.
+- `SOCIAL_PROVIDER=meta` configuration path with mock fallback when credentials are missing.
+- Meta config fields: `META_GRAPH_API_VERSION`, `META_PAGE_ID`, `META_PAGE_ACCESS_TOKEN`, and `META_INSTAGRAM_BUSINESS_ACCOUNT_ID`.
+- Publishing now loads the latest generated poster for the scheduled post and uses its public image URL.
+- Instagram publish flow: create media container, then publish media.
+- Facebook publish flow: publish photo when image URL exists, otherwise publish text feed post.
+- `POST /social/publish-now` now returns actual provider value: `mock` or `meta`.
+
+Required before live publishing:
+
+- Facebook Page ID.
+- Page access token with publishing permissions.
+- Instagram Business Account ID connected to the Facebook Page.
+- App permissions and review as required by Meta for production users.
+- A generated poster saved to a public Firebase Storage URL for Instagram publishing.
+
+Current limitation:
+
+- OAuth connection UI is not implemented yet; credentials are configured server-side in `.env`.
+- Scheduled background publishing is not implemented yet; publishing is still manual via **Publish Now**.
+- Multi-platform IDs are stored in one comma-separated `platform_post_id` field for now.
+
+## Phase 14 Setup Status
+
+Status: better poster layout engine created.
+
+Created:
+
+- `GeneratedPosterCreate.template` with options: `auto`, `product_spotlight`, `educational`, `offer`, and `festival`.
+- Backend layout renderer in `backend/app/services/image_service.py`.
+- Controlled 1080x1080 PNG poster composition using brand colors, logo, product image, headline, caption snippet, hashtags, CTA, website/phone footer, and template-specific backgrounds.
+- `layout` poster provider value for generated poster metadata.
+- Content Review template selector before generating a poster.
+- Frontend poster preview chip: `Generated with brand layout engine`.
+
+Current behavior:
+
+```text
+Content Review
+  -> choose template
+  -> Generate Poster
+  -> backend loads business + product + reference memory
+  -> layout renderer creates branded PNG
+  -> Firebase Storage save is attempted
+  -> local /static/posters fallback is used if Storage is unavailable
+```
+
+Current limitation:
+
+- This is controlled layout rendering, not a full drag-and-drop design editor.
+- Fonts use available system fonts through Pillow; exact custom font upload is still future work.
+
+## Phase 13 Setup Status
+
+Status: brand-grounded generation is implemented for text prompts and final raster poster composition.
+
+Created:
+
+- Daily generation now loads labelled reference images and sends them to Gemini/fallback prompt generation.
+- Poster prompts now include brand identity, colors, fonts, website, product images, product notes, and reference image labels/notes as visual memory.
+- Poster generation now receives `VisualAssetContext` containing business profile, selected product, and reference images.
+- Generated raster posters now include uploaded product imagery as a bottom composition element when product images exist.
+- Generated raster posters still include uploaded logo at the top, then save to Firebase Storage when configured.
+
+Current limitation:
+
+- Hugging Face FLUX text-to-image is still text-prompt based. The app now uses uploaded images for prompt truth and final composition overlays, but true image-conditioning/image-to-image depends on provider support and should be the next image-provider upgrade.
+
+## Phase 12 Setup Status
+
+Status: Firebase Storage upload foundation created.
+
+Created:
+
+- `POST /assets/upload` protected multipart upload API.
+- `backend/app/services/storage_service.py` Firebase Storage uploader with download-token URLs.
+- Brand logo/avatar upload buttons in Business Profile.
+- Product multiple-image upload in Products.
+- Reference image upload in References.
+- Generated posters now upload to Firebase Storage under `businesses/{businessId}/posters/{postId}/...` when Storage is configured.
+- Poster prompts now include top logo placement guidance.
+- Generated raster posters now receive an exact uploaded logo overlay at the top before being stored.
+
+Storage workflow:
+
+```text
+Browser selects image file
+  -> FastAPI receives multipart upload with Firebase ID token
+  -> Backend uploads file to Firebase Storage
+  -> Backend returns Firebase download URL
+  -> UI saves URL into brand kit, product images, or reference image metadata
+```
+
+Next phase:
+
+- Use image-to-image/reference input when the selected model provider supports it.
+- Add a layout/template layer so product image, logo, headline, CTA, and generated background can be arranged with more control.
+
+## Phase 11 Setup Status
+
+Status: brand kit and visual memory foundation created.
+
+Created:
+
+- Business profile brand kit fields: logo, avatar, brand colors, fonts, visual styles, and brand keywords.
+- Business profile contact/legal fields: website, address, phone, email, and license number.
+- Option-style Business UI for target audience, brand tone, business goals, fonts, colors, and visual style, with Other text fields where needed.
+- Product image gallery fields: `image_urls` and `image_notes`, while keeping `image_url` as primary compatibility field.
+- `backend/app/schemas/reference_image.py` reference image schemas.
+- `backend/app/api/routes_reference_images.py` protected reference image CRUD APIs.
+- Firestore `reference_images/{referenceImageId}` top-level collection linked by `business_id`.
+- `frontend/src/pages/ReferenceImages/ReferenceImagesPage.tsx` UI for labelled visual references.
+- App navigation tab: **References**.
+- Prompt generation now includes brand kit and product image notes in Gemini/fallback poster prompts.
+
+Implemented backend routes:
+
+- `POST /reference-images`.
+- `GET /reference-images`.
+- `PATCH /reference-images/{reference_image_id}`.
+- `DELETE /reference-images/{reference_image_id}`.
+
+Visual memory model:
+
+```text
+businesses/{firebase_uid}
+  -> brand_kit metadata
+
+products/{productId}
+  -> image_urls[]
+  -> image_notes
+
+reference_images/{referenceImageId}
+  -> name
+  -> reference_type
+  -> labels[]
+  -> image_url
+  -> notes
+```
+
+Planned storage folders for the next upload phase:
+
+```text
+businesses/{businessId}/brand-assets/{fileName}
+businesses/{businessId}/reference-images/{referenceImageId}/{fileName}
+businesses/{businessId}/product-images/{productId}/{fileName}
+```
+
+Next phase:
+
+- Real image upload to Firebase Storage for brand assets, reference images, and product images is implemented.
+- Use reference images in the image generation pipeline when the selected image provider supports image input.
+
+## Phase 10 Setup Status
+
+Status: mock social publishing foundation created.
+
+Created:
+
+- `backend/app/api/routes_social.py` protected social publishing API.
+- `backend/app/services/social_service.py` mock publisher adapter boundary.
+- `POST /social/publish-now` for scheduled posts.
+- Scheduled post publish metadata: `published_at`, `platform_post_id`, and `error_message`.
+- Firestore workflow that marks `scheduled_posts/{scheduledPostId}` and the source `generated_posts/{postId}` as `published`.
+- Calendar UI **Publish Now** action for scheduled posts.
+- Calendar UI published timestamp, mock platform post id, and publish error display.
+
+Implemented backend routes:
+
+- `POST /social/publish-now`.
+
+Publishing workflow:
+
+```text
+Content tab
+  -> Approve generated content
+  -> Calendar tab
+  -> Schedule approved post
+  -> Publish Now
+  -> Mock social publisher returns platform_post_id
+  -> scheduled_posts and generated_posts are marked published
+```
+
+Next phase:
+
+- Connect real Meta/Instagram/Facebook publishing credentials.
+- Add social account connection records.
+- Move from manual publish button to background scheduled publishing.
+
+## Phase 9 Setup Status
+
+Status: poster image generation created and Hugging Face FLUX provider support added.
+
+Created:
+
+- `backend/app/schemas/generated_poster.py` generated poster schemas.
+- `backend/app/api/routes_posters.py` protected poster APIs.
+- `backend/app/services/image_service.py` Hugging Face FLUX, Gemini image generation, plus fallback SVG poster generation.
+- Static poster serving from repo-level `generated/posters` through `/static/posters`.
+- Firestore generated poster metadata in top-level `generated_posters/{posterId}` documents linked by `business_id`.
+- Content Review **Generate Poster** button.
+- Content Review poster preview for the selected generated post.
+
+Implemented backend routes:
+
+- `GET /posters`.
+- `POST /posters/generate`.
+
+Poster workflow:
+
+```text
+Content tab
+  -> Edit or approve generated content
+  -> Generate Poster
+  -> Hugging Face FLUX or Gemini image model creates poster, or fallback SVG is created
+  -> Save poster metadata to generated_posters
+  -> Preview poster in Content Review
+```
+
+Provider setup:
+
+```text
+IMAGE_PROVIDER=huggingface
+HF_IMAGE_MODEL=black-forest-labs/FLUX.1-schnell
+HF_TOKEN=<your-hugging-face-token>
+```
+
+Next phase:
+
+- Mock social publishing foundation. Implemented in Phase 10.
+- Later move poster binary storage from local `generated/posters` to Firebase Storage.
+
+## Phase 8 Setup Status
+
+Status: AI schedule time recommendation created.
+
+Created:
+
+- `POST /schedule/recommend-time` protected API.
+- Gemini-backed schedule recommendation using business profile, product memory, generated content, target date, and platform.
+- Heuristic fallback recommendation when Gemini is unavailable.
+- Recommendation response with `recommended_at`, `reason`, `confidence`, `alternative_slots`, and `generation_source`.
+- Calendar UI **Recommend Time** button.
+- Calendar UI applies the recommended time to the schedule input while still allowing manual edits before saving.
+
+Implemented backend routes:
+
+- `POST /schedule/recommend-time`.
+
+Recommendation workflow:
+
+```text
+Calendar tab
+  -> Choose approved content
+  -> Click Recommend Time
+  -> Gemini/fallback suggests best time and alternatives
+  -> User accepts or edits time
+  -> Schedule selected post
+```
+
+Next phase:
+
+- Poster image generation. Implemented in Phase 9.
+- Later connect scheduled posts to real social publishing APIs.
+
+## Phase 7 Setup Status
+
+Status: manual content calendar and scheduling created.
+
+Created:
+
+- `backend/app/schemas/scheduled_post.py` scheduled post schemas.
+- `backend/app/api/routes_schedule.py` protected schedule APIs.
+- Firestore scheduled post storage in top-level `scheduled_posts/{scheduledPostId}` documents linked by `business_id`.
+- Scheduling workflow that requires generated content to be `approved`.
+- Creating a scheduled post updates the source generated post to `scheduled`.
+- Cancelling a scheduled post deletes the schedule document and returns the source generated post to `approved`.
+- `frontend/src/pages/ContentCalendar/ContentCalendarPage.tsx` calendar/schedule UI.
+- Calendar navigation in the protected app shell.
+- Scheduled content API helpers in `frontend/src/services/api.ts`.
+
+Implemented backend routes:
+
+- `GET /schedule/posts`.
+- `POST /schedule/posts`.
+- `DELETE /schedule/posts/{scheduled_post_id}`.
+
+Calendar workflow:
+
+```text
+Content tab
+  -> Approve generated content
+  -> Calendar tab
+  -> Choose approved content
+  -> Pick schedule date/time
+  -> Save to scheduled_posts
+```
+
+Next phase:
+
+- Add poster image generation for approved or scheduled content.
+- Later connect scheduled posts to real social publishing APIs.
+
+## Phase 6 Setup Status
+
+Status: Gemini-backed daily marketing generation added with fallback.
+
+Created:
+
+- `backend/app/services/llm_service.py` Gemini Interactions API integration.
+- Daily graph now tries Gemini using business profile plus selected product memory.
+- Deterministic caption/hashtag/poster prompt generation remains as fallback when Gemini is not configured, the key is rejected, the network fails, or Gemini returns invalid JSON.
+- `generation_source` added to daily plan and generated post responses.
+- Dashboard and content review UI show whether output came from Gemini or fallback rules.
+
+Environment:
+
+```text
+LLM_PROVIDER=gemini
+GEMINI_MODEL=gemini-3.5-flash
+GEMINI_API_KEY=<your-google-ai-studio-key>
+```
+
+Generate or view the key at:
+
+```text
+https://aistudio.google.com/api-keys
+```
+
+Next phase:
+
+- Add content calendar and scheduling for approved generated posts.
+- Add poster image generation for approved content.
+
+## Phase 5 Setup Status
+
+Status: generated content persistence and review created.
+
+Created:
+
+- `backend/app/schemas/generated_post.py` generated post schemas.
+- `backend/app/api/routes_content.py` protected generated content APIs.
+- Firestore generated post storage in top-level `generated_posts/{postId}` documents linked by `business_id`.
+- Daily marketing workflow now saves generated content automatically.
+- `frontend/src/pages/GeneratedContent/GeneratedContentPage.tsx` content review UI.
+- Content navigation in the protected app shell.
+- Generated content API helpers in `frontend/src/services/api.ts`.
+
+Implemented backend routes:
+
+- `GET /content/posts`.
+- `GET /content/posts/{post_id}`.
+- `PATCH /content/posts/{post_id}`.
+- `DELETE /content/posts/{post_id}`.
+
+Review workflow:
+
+```text
+Generate Today
+  -> Save generated post
+  -> Content tab
+  -> Edit caption / hashtags / poster prompt
+  -> Approve or reject/delete
+```
+
+Next phase:
+
+- Add content calendar.
+- Schedule approved posts.
+- Add poster image generation for approved content.
+## Phase 4 Setup Status
 
 Status: first daily marketing workflow created.
 
@@ -34,7 +468,7 @@ Created:
 
 - `backend/app/schemas/product.py` product request/response schemas.
 - `backend/app/api/routes_products.py` protected product CRUD APIs.
-- Firestore product storage under `businesses/{firebase_uid}/products/{productId}`.
+- Firestore product storage in top-level `products/{productId}` documents linked by `business_id`.
 - `frontend/src/pages/Products/ProductsPage.tsx` product management UI.
 - Frontend product API helpers in `frontend/src/services/api.ts`.
 - Products navigation in the protected app shell.
@@ -210,7 +644,7 @@ POST /business/profile
 POST /products
 POST /agent/run-daily-plan
 POST /content/generate
-POST /poster/generate
+POST /posters/generate
 POST /social/schedule
 GET  /analytics
 GET  /recommendations
@@ -277,12 +711,12 @@ recommendations
 agent_logs
 ```
 
-I would make `businesses` a top-level collection because one user may later manage multiple businesses.
+Keep `businesses` as a top-level collection, but the MVP uses one business profile per signed-in user. Products and generated posts are separate top-level collections linked with `business_id`.
 
 Example:
 
 ```text
-businesses/{businessId}
+businesses/{firebase_uid}
 products/{productId}
 content_plans/{planId}
 generated_posts/{postId}
@@ -579,5 +1013,6 @@ Node.js is installed:
 cd frontend
 npm install
 npm run dev
+
 
 
