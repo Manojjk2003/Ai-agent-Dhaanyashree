@@ -1,3 +1,104 @@
+## Phase 13 Setup Status
+
+Status: brand-grounded generation is implemented for text prompts and final raster poster composition.
+
+Created:
+
+- Daily generation now loads labelled reference images and sends them to Gemini/fallback prompt generation.
+- Poster prompts now include brand identity, colors, fonts, website, product images, product notes, and reference image labels/notes as visual memory.
+- Poster generation now receives `VisualAssetContext` containing business profile, selected product, and reference images.
+- Generated raster posters now include uploaded product imagery as a bottom composition element when product images exist.
+- Generated raster posters still include uploaded logo at the top, then save to Firebase Storage when configured.
+
+Current limitation:
+
+- Hugging Face FLUX text-to-image is still text-prompt based. The app now uses uploaded images for prompt truth and final composition overlays, but true image-conditioning/image-to-image depends on provider support and should be the next image-provider upgrade.
+
+## Phase 12 Setup Status
+
+Status: Firebase Storage upload foundation created.
+
+Created:
+
+- `POST /assets/upload` protected multipart upload API.
+- `backend/app/services/storage_service.py` Firebase Storage uploader with download-token URLs.
+- Brand logo/avatar upload buttons in Business Profile.
+- Product multiple-image upload in Products.
+- Reference image upload in References.
+- Generated posters now upload to Firebase Storage under `businesses/{businessId}/posters/{postId}/...` when Storage is configured.
+- Poster prompts now include top logo placement guidance.
+- Generated raster posters now receive an exact uploaded logo overlay at the top before being stored.
+
+Storage workflow:
+
+```text
+Browser selects image file
+  -> FastAPI receives multipart upload with Firebase ID token
+  -> Backend uploads file to Firebase Storage
+  -> Backend returns Firebase download URL
+  -> UI saves URL into brand kit, product images, or reference image metadata
+```
+
+Next phase:
+
+- Use image-to-image/reference input when the selected model provider supports it.
+- Add a layout/template layer so product image, logo, headline, CTA, and generated background can be arranged with more control.
+
+## Phase 11 Setup Status
+
+Status: brand kit and visual memory foundation created.
+
+Created:
+
+- Business profile brand kit fields: logo, avatar, brand colors, fonts, visual styles, and brand keywords.
+- Business profile contact/legal fields: website, address, phone, email, and license number.
+- Option-style Business UI for target audience, brand tone, business goals, fonts, colors, and visual style, with Other text fields where needed.
+- Product image gallery fields: `image_urls` and `image_notes`, while keeping `image_url` as primary compatibility field.
+- `backend/app/schemas/reference_image.py` reference image schemas.
+- `backend/app/api/routes_reference_images.py` protected reference image CRUD APIs.
+- Firestore `reference_images/{referenceImageId}` top-level collection linked by `business_id`.
+- `frontend/src/pages/ReferenceImages/ReferenceImagesPage.tsx` UI for labelled visual references.
+- App navigation tab: **References**.
+- Prompt generation now includes brand kit and product image notes in Gemini/fallback poster prompts.
+
+Implemented backend routes:
+
+- `POST /reference-images`.
+- `GET /reference-images`.
+- `PATCH /reference-images/{reference_image_id}`.
+- `DELETE /reference-images/{reference_image_id}`.
+
+Visual memory model:
+
+```text
+businesses/{firebase_uid}
+  -> brand_kit metadata
+
+products/{productId}
+  -> image_urls[]
+  -> image_notes
+
+reference_images/{referenceImageId}
+  -> name
+  -> reference_type
+  -> labels[]
+  -> image_url
+  -> notes
+```
+
+Planned storage folders for the next upload phase:
+
+```text
+businesses/{businessId}/brand-assets/{fileName}
+businesses/{businessId}/reference-images/{referenceImageId}/{fileName}
+businesses/{businessId}/product-images/{productId}/{fileName}
+```
+
+Next phase:
+
+- Real image upload to Firebase Storage for brand assets, reference images, and product images is implemented.
+- Use reference images in the image generation pipeline when the selected image provider supports image input.
+
 ## Phase 10 Setup Status
 
 Status: mock social publishing foundation created.

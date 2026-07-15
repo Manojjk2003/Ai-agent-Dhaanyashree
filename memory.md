@@ -15,7 +15,7 @@ Whenever code, configuration, routes, APIs, database schema, agent behavior, dep
 
 The project is intended to become an AI Marketing Partner for small business owners. The system should understand the business, products, audience, brand tone, trends, content performance, and sales signals, then generate marketing actions such as captions, posters, reels, SEO ideas, calendar plans, and recommendations.
 
-Current repository state: Phase 10 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, one business profile form, product management, daily marketing plan generation, generated content review, manual content calendar scheduling, AI schedule time recommendation, poster image generation/preview, mock publish controls, a FastAPI backend with Firebase token verification plus business/product/content/schedule/poster/social/agent routes, Gemini-backed daily generation, Hugging Face FLUX/Gemini poster image generation paths with fallback SVG output, root environment/ignore/readme files, and project memory documents.
+Current repository state: Phase 13 foundation scaffold exists. The workspace now contains a React/Vite frontend with Firebase Auth initialization, email/password auth UI, protected app shell, one business profile form with brand kit uploads, product management with multiple uploaded image URLs, reference image memory with uploads, daily marketing plan generation, generated content review, manual content calendar scheduling, AI schedule time recommendation, poster image generation/preview, mock publish controls, a FastAPI backend with Firebase token verification plus asset-upload/business/product/reference-image/content/schedule/poster/social/agent routes, Gemini-backed daily generation, Hugging Face FLUX/Gemini poster image generation paths with fallback SVG output, Firebase Storage upload support, brand-grounded prompt generation, final logo/product-image poster composition, root environment/ignore/readme files, and project memory documents.
 
 Verified from repository: `git status` reports this is not a valid Git repository, even though a `.git` entry is present in the workspace.
 
@@ -31,7 +31,7 @@ User account
       -> Many products
 ```
 
-Firestore uses one `businesses/{firebase_uid}` profile document, plus top-level `products` and `generated_posts` collections linked by `business_id`.
+Firestore uses one `businesses/{firebase_uid}` profile document, plus top-level `products`, `reference_images`, and `generated_posts` collections linked by `business_id`.
 
 The intended product gives the owner a single dashboard that answers:
 
@@ -75,7 +75,7 @@ Actual detected stack:
 - Frontend: React, Vite, TypeScript, Material UI, lucide-react
 - Backend: FastAPI, Pydantic Settings
 - Agent orchestration: LangGraph dependency declared; `backend/app/graphs/daily_marketing_graph.py` currently runs a graph-boundary workflow that tries Gemini-backed content generation and falls back to deterministic local agents
-- Database/storage/auth: Firebase frontend client initialization and Auth UI exist. Backend Firebase Admin token verification and business profile/product/generated-post Firestore persistence are implemented, but require service-account environment variables. Storage usage is not implemented yet.
+- Database/storage/auth: Firebase frontend client initialization and Auth UI exist. Backend Firebase Admin token verification, business profile/product/generated-post Firestore persistence, and Firebase Storage uploads are implemented, but require service-account environment variables and `FIREBASE_STORAGE_BUCKET`.
 
 ## Repository Structure
 
@@ -264,6 +264,7 @@ Actual frontend architecture:
 - Login page: `frontend/src/pages/Login/LoginPage.tsx`
 - Business profile page: `frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx`
 - Products page: `frontend/src/pages/Products/ProductsPage.tsx`
+- Reference images page: `frontend/src/pages/ReferenceImages/ReferenceImagesPage.tsx`
 - Generated content page: `frontend/src/pages/GeneratedContent/GeneratedContentPage.tsx`
 - Content calendar page: `frontend/src/pages/ContentCalendar/ContentCalendarPage.tsx`
 - API helper: `frontend/src/services/api.ts`
@@ -291,6 +292,7 @@ Actual backend architecture:
 - Settings: `backend/app/config.py`
 - Routes:
   - `backend/app/api/routes_health.py`
+  - `backend/app/api/routes_assets.py`
   - `backend/app/api/routes_agent.py`
   - `backend/app/api/routes_auth.py`
   - `backend/app/api/routes_business.py`
@@ -313,6 +315,7 @@ Planned collections:
 - `users`
 - `businesses`
 - `products`
+- `reference_images`
 - `brand_profiles`
 - `content_plans`
 - `generated_posts`
@@ -332,10 +335,12 @@ Detailed schema is documented in `database-map.md`.
 
 Actual database implementation:
 
-- Business profile, product, and generated-post Firestore read/write exists in `backend/app/services/firebase_service.py`.
+- Business profile, product, generated-post, and reference-image Firestore read/write exists in `backend/app/services/firebase_service.py`.
+- Brand, reference, product, and generated poster images can be uploaded through `backend/app/services/storage_service.py` and stored in Firebase Storage.
 - Firebase frontend environment variables exist in `.env.example`; local values are stored in ignored `frontend/.env.local`.
 - `frontend/.env.example` documents the Vite Firebase variables used when running from the frontend directory.
 - Backend Firebase Admin supports `FIREBASE_SERVICE_ACCOUNT_FILE` or inline `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`.
+- Backend Firebase token verification uses configurable `FIREBASE_TOKEN_CLOCK_SKEW_SECONDS`, defaulting to `10`, to tolerate small local clock drift.
 
 ## Authentication Flow
 
@@ -374,6 +379,7 @@ Implemented APIs:
 
 - `GET /health`
 - `GET /me`
+- `POST /assets/upload`
 - `GET /business/profile`
 - `POST /business/profile`
 - `POST /products`
@@ -381,6 +387,10 @@ Implemented APIs:
 - `GET /products/{product_id}`
 - `PATCH /products/{product_id}`
 - `DELETE /products/{product_id}`
+- `POST /reference-images`
+- `GET /reference-images`
+- `PATCH /reference-images/{reference_image_id}`
+- `DELETE /reference-images/{reference_image_id}`
 - `GET /content/posts`
 - `GET /content/posts/{post_id}`
 - `PATCH /content/posts/{post_id}`
@@ -466,6 +476,7 @@ Planned environment variables:
 - `FIREBASE_CLIENT_EMAIL`
 - `FIREBASE_PRIVATE_KEY`
 - `FIREBASE_STORAGE_BUCKET`
+- `FIREBASE_TOKEN_CLOCK_SKEW_SECONDS`
 - `VITE_FIREBASE_API_KEY`
 - `VITE_FIREBASE_AUTH_DOMAIN`
 - `VITE_FIREBASE_PROJECT_ID`
@@ -514,7 +525,8 @@ Actual integrations:
 
 Purpose: store business profile, products, benefits, target audience, pricing, brand tone, and goals.
 
-Status: business profile and product memory implemented.
+Status: business profile, brand kit, uploaded brand logo/avatar URLs, product memory, uploaded product image galleries, and labelled uploaded reference image memory implemented. This memory is now actively passed into content generation, poster prompt generation, and final poster composition.
+Compatibility note: older Firestore business/product documents are normalized with default Phase 11 fields on read so existing users do not crash the frontend.
 
 ### Daily Content Generation
 
@@ -526,7 +538,7 @@ Status: Gemini-backed daily generation is implemented with deterministic fallbac
 
 Purpose: convert product and campaign idea into a commercial poster.
 
-Status: Hugging Face FLUX/Gemini/fallback poster generation is implemented.
+Status: Hugging Face FLUX/Gemini/fallback poster generation is implemented. Generated raster posters are uploaded to Firebase Storage when configured and stamped with the uploaded brand logo at the top when `brand_kit.logo_url` exists. If product images exist, the first uploaded product image is composited into the final raster poster so the output carries real product identity. Local `/static/posters` output remains only as a fallback if Storage upload fails.
 
 ### Content Calendar
 
@@ -602,7 +614,7 @@ Current debt:
 - Firebase Authentication must be initialized in Firebase Console and Email/Password sign-in must be enabled before the frontend login screen can create accounts.
 - LangGraph dependency is declared, but the daily graph is currently a graph-boundary function rather than full LangGraph nodes.
 - Frontend routing is not implemented yet.
-- Dependencies have not been installed in this work session.
+- Backend dependencies were installed in the local virtualenv for this work session, including `python-multipart` for file uploads.
 - Local verification found Python available, but Node/npm are not on PATH.
 - Local global Python has an incompatible FastAPI/Starlette pairing; use a clean backend virtualenv from `backend/requirements.txt`.
 - Git repository state is invalid according to `git status`.
@@ -661,7 +673,11 @@ Build in this order:
 8. AI schedule time recommendation. Current Gemini/fallback recommendation version is implemented.
 9. Poster generation. Current Hugging Face FLUX/Gemini/fallback image version is implemented.
 10. Social publishing foundation. Current mock publish version is implemented.
-11. Analytics.
-12. Recommendations.
-13. SEO and blogs.
-14. Reels/video generation.
+11. Brand kit and visual memory foundation. Current upload-backed visual memory version is implemented.
+12. Firebase Storage uploads for brand/reference/product/generated poster assets. Current upload foundation is implemented.
+13. Brand-grounded generation using brand kit, product images, and reference images. Current prompt and final composition foundation is implemented.
+14. Use uploaded reference/product images as true image-conditioning inputs for the image model where provider support allows it.
+15. Analytics.
+16. Recommendations.
+17. SEO and blogs.
+18. Reels/video generation.

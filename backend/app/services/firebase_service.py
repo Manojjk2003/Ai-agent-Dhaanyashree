@@ -7,7 +7,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 from app.config import settings
 from app.schemas.auth import CurrentUser
-from app.schemas.business import BusinessProfile, BusinessProfileResponse
+from app.schemas.business import BrandKit, BusinessProfile, BusinessProfileResponse
 from app.schemas.generated_post import (
     GeneratedPostCreate,
     GeneratedPostResponse,
@@ -15,8 +15,23 @@ from app.schemas.generated_post import (
 )
 from app.schemas.generated_poster import GeneratedPosterResponse
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
+from app.schemas.reference_image import (
+    ReferenceImageCreate,
+    ReferenceImageResponse,
+    ReferenceImageUpdate,
+)
 from app.schemas.scheduled_post import ScheduledPostCreate, ScheduledPostResponse
 from app.services.image_service import PosterImage
+
+
+def _list_or_empty(value) -> list:
+    return value if isinstance(value, list) else []
+
+
+def _brand_kit_or_default(value) -> BrandKit:
+    if isinstance(value, dict):
+        return BrandKit(**value)
+    return BrandKit()
 
 
 class FirebaseService:
@@ -72,7 +87,10 @@ class FirebaseService:
         self._ensure_app()
 
         try:
-            decoded = auth.verify_id_token(token)
+            decoded = auth.verify_id_token(
+                token,
+                clock_skew_seconds=settings.firebase_token_clock_skew_seconds,
+            )
         except Exception as exc:
             detail = "Invalid Firebase token"
             if settings.app_env == "development":
@@ -96,17 +114,33 @@ class FirebaseService:
             return None
 
         data = doc.to_dict() or {}
-        return BusinessProfileResponse(
+        response = BusinessProfileResponse(
             business_id=doc.id,
             owner_user_id=data.get("owner_user_id", user.uid),
             business_name=data.get("business_name", ""),
             industry=data.get("industry", ""),
             description=data.get("description", ""),
-            target_audience=data.get("target_audience", []),
+            website_url=data.get("website_url", ""),
+            address=data.get("address", ""),
+            phone_number=data.get("phone_number", ""),
+            email=data.get("email", ""),
+            license_number=data.get("license_number", ""),
+            target_audience=_list_or_empty(data.get("target_audience")),
             brand_tone=data.get("brand_tone", ""),
-            goals=data.get("goals", []),
+            goals=_list_or_empty(data.get("goals")),
+            brand_kit=_brand_kit_or_default(data.get("brand_kit")),
             updated=False,
         )
+        normalized_payload = response.model_dump(exclude={"business_id", "updated"})
+        if any(field not in data for field in normalized_payload):
+            db.collection("businesses").document(user.uid).set(
+                {
+                    **normalized_payload,
+                    "updated_at": datetime.now(UTC).isoformat(),
+                },
+                merge=True,
+            )
+        return response
 
     def save_business_profile(
         self,
@@ -147,17 +181,24 @@ class FirebaseService:
                 detail="Product not found",
             )
 
+        image_urls = _list_or_empty(data.get("image_urls"))
+        image_url = data.get("image_url", "")
+        if not image_urls and image_url:
+            image_urls = [image_url]
+
         return ProductResponse(
             product_id=doc.id,
             business_id=data.get("business_id", user.uid),
             name=data.get("name", ""),
             category=data.get("category", ""),
             description=data.get("description", ""),
-            benefits=data.get("benefits", []),
-            ingredients=data.get("ingredients", []),
+            benefits=_list_or_empty(data.get("benefits")),
+            ingredients=_list_or_empty(data.get("ingredients")),
             price=data.get("price"),
-            target_audience=data.get("target_audience", []),
-            image_url=data.get("image_url", ""),
+            target_audience=_list_or_empty(data.get("target_audience")),
+            image_url=image_url,
+            image_urls=image_urls,
+            image_notes=data.get("image_notes", ""),
             is_active=data.get("is_active", True),
         )
 
@@ -232,6 +273,89 @@ class FirebaseService:
                 detail="Product not found",
             )
 
+        doc_ref.delete()
+
+    def _reference_images_collection(self, user: CurrentUser):
+        db = self._ensure_db()
+        return db.collection("reference_images")
+
+    def _reference_image_from_doc(self, user: CurrentUser, doc) -> ReferenceImageResponse:
+        data = doc.to_dict() or {}
+        if data.get("business_id") != user.uid:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reference image not found",
+            )
+
+        return ReferenceImageResponse(
+            reference_image_id=doc.id,
+            business_id=data.get("business_id", user.uid),
+            name=data.get("name", ""),
+            image_url=data.get("image_url", ""),
+            reference_type=data.get("reference_type", "ingredient"),
+            labels=data.get("labels", []),
+            notes=data.get("notes", ""),
+            created_at=data.get("created_at", ""),
+            updated_at=data.get("updated_at", ""),
+        )
+
+    def create_reference_image(
+        self,
+        user: CurrentUser,
+        reference_image: ReferenceImageCreate,
+    ) -> ReferenceImageResponse:
+        now = datetime.now(UTC).isoformat()
+        payload = {
+            **reference_image.model_dump(),
+            "business_id": user.uid,
+            "created_at": now,
+            "updated_at": now,
+        }
+        doc_ref = self._reference_images_collection(user).document()
+        doc_ref.set(payload)
+        return self._reference_image_from_doc(user, doc_ref.get())
+
+    def list_reference_images(self, user: CurrentUser) -> list[ReferenceImageResponse]:
+        docs = (
+            self._reference_images_collection(user)
+            .where(filter=FieldFilter("business_id", "==", user.uid))
+            .stream()
+        )
+        reference_images = [self._reference_image_from_doc(user, doc) for doc in docs]
+        return sorted(reference_images, key=lambda item: item.name.lower())
+
+    def update_reference_image(
+        self,
+        user: CurrentUser,
+        reference_image_id: str,
+        reference_image: ReferenceImageUpdate,
+    ) -> ReferenceImageResponse:
+        doc_ref = self._reference_images_collection(user).document(reference_image_id)
+        existing = doc_ref.get()
+
+        if not existing.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reference image not found",
+            )
+
+        self._reference_image_from_doc(user, existing)
+        payload = reference_image.model_dump(exclude_unset=True)
+        payload["updated_at"] = datetime.now(UTC).isoformat()
+        doc_ref.set(payload, merge=True)
+        return self._reference_image_from_doc(user, doc_ref.get())
+
+    def delete_reference_image(self, user: CurrentUser, reference_image_id: str) -> None:
+        doc_ref = self._reference_images_collection(user).document(reference_image_id)
+        existing = doc_ref.get()
+
+        if not existing.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reference image not found",
+            )
+
+        self._reference_image_from_doc(user, existing)
         doc_ref.delete()
 
     def _generated_posts_collection(self, user: CurrentUser):

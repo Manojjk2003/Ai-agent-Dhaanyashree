@@ -6,6 +6,7 @@ AI Marketing Partner is planned as a dashboard and agent system for small busine
 - FastAPI backend in `backend/`
 - LangGraph workflow location in `backend/app/graphs/`
 - Manual content review and calendar scheduling
+- Firebase Storage uploads for brand, reference, product, and generated poster images
 - Project memory and architecture docs at the root
 
 ## Project Layout
@@ -56,6 +57,7 @@ Recommended local setup:
 ```text
 FIREBASE_SERVICE_ACCOUNT_FILE=C:\absolute\path\to\service-account.json
 FIREBASE_STORAGE_BUCKET=ai-agent-dhaanyashree.firebasestorage.app
+FIREBASE_TOKEN_CLOCK_SKEW_SECONDS=10
 ```
 
 Alternative inline setup:
@@ -65,7 +67,10 @@ FIREBASE_PROJECT_ID=
 FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
 FIREBASE_STORAGE_BUCKET=
+FIREBASE_TOKEN_CLOCK_SKEW_SECONDS=10
 ```
+
+`FIREBASE_TOKEN_CLOCK_SKEW_SECONDS` allows a small clock tolerance for Firebase ID tokens. Keep it small; `10` seconds handles local machine drift like `Token used too early` errors.
 
 Gemini-backed daily content generation can be enabled with:
 
@@ -100,6 +105,8 @@ https://huggingface.co/settings/tokens
 ```
 
 The token needs permission to make Inference Providers calls. If the image provider is unavailable, the backend saves a fallback SVG poster and stores the fallback reason in Firestore.
+
+Image uploads and generated posters use Firebase Storage when `FIREBASE_STORAGE_BUCKET` is configured. Brand logo/avatar uploads, reference images, product image galleries, and generated poster files are routed through the backend so secrets stay server-side. Brand kit, uploaded product images, and labelled reference images are used as active generation context. When a brand logo is uploaded and saved in the business profile, generated raster posters are stamped with that logo at the top before being stored. When product images exist, the first uploaded product image is composited into the final raster poster.
 
 Social publishing is currently a safe mock workflow. The Calendar **Publish Now** button records a mock platform post id and marks the scheduled/generated post as published. It does not post to Instagram or Facebook until a real Meta publishing adapter is added.
 

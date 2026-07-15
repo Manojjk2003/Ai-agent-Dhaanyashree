@@ -7,6 +7,13 @@ type RequestOptions = {
   body?: unknown;
 };
 
+type UploadAssetType =
+  | "brand_logo"
+  | "brand_avatar"
+  | "reference_image"
+  | "product_image"
+  | "generated_poster";
+
 async function request<T>(path: string, options: RequestOptions = {}) {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -34,13 +41,46 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   return response.json() as Promise<T>;
 }
 
+async function uploadRequest<T>(path: string, token: string, body: FormData) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
 export type BusinessProfile = {
   business_name: string;
   industry: string;
   description: string;
+  website_url: string;
+  address: string;
+  phone_number: string;
+  email: string;
+  license_number: string;
   target_audience: string[];
   brand_tone: string;
   goals: string[];
+  brand_kit: {
+    logo_url: string;
+    avatar_url: string;
+    primary_color: string;
+    secondary_color: string;
+    accent_color: string;
+    font_family: string;
+    heading_font_family: string;
+    visual_style: string[];
+    brand_keywords: string[];
+  };
 };
 
 export type BusinessProfileResponse = BusinessProfile & {
@@ -58,12 +98,43 @@ export type ProductInput = {
   price: number | null;
   target_audience: string[];
   image_url: string;
+  image_urls: string[];
+  image_notes: string;
   is_active: boolean;
 };
 
 export type ProductResponse = ProductInput & {
   product_id: string;
   business_id: string;
+};
+
+export type ReferenceImageType =
+  | "ingredient"
+  | "product"
+  | "packaging"
+  | "style"
+  | "other";
+
+export type ReferenceImageInput = {
+  name: string;
+  image_url: string;
+  reference_type: ReferenceImageType;
+  labels: string[];
+  notes: string;
+};
+
+export type ReferenceImageResponse = ReferenceImageInput & {
+  reference_image_id: string;
+  business_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AssetUploadResponse = {
+  image_url: string;
+  storage_path: string;
+  content_type: string;
+  file_name: string;
 };
 
 export type DailyPlanResponse = {
@@ -228,6 +299,61 @@ export async function deleteProduct(token: string, productId: string) {
     token,
     method: "DELETE",
   });
+}
+
+export async function listReferenceImages(token: string) {
+  return request<ReferenceImageResponse[]>("/reference-images", { token });
+}
+
+export async function createReferenceImage(
+  token: string,
+  referenceImage: ReferenceImageInput,
+) {
+  return request<ReferenceImageResponse>("/reference-images", {
+    token,
+    method: "POST",
+    body: referenceImage,
+  });
+}
+
+export async function updateReferenceImage(
+  token: string,
+  referenceImageId: string,
+  referenceImage: Partial<ReferenceImageInput>,
+) {
+  return request<ReferenceImageResponse>(
+    `/reference-images/${referenceImageId}`,
+    {
+      token,
+      method: "PATCH",
+      body: referenceImage,
+    },
+  );
+}
+
+export async function deleteReferenceImage(
+  token: string,
+  referenceImageId: string,
+) {
+  return request<null>(`/reference-images/${referenceImageId}`, {
+    token,
+    method: "DELETE",
+  });
+}
+
+export async function uploadAsset(
+  token: string,
+  assetType: UploadAssetType,
+  file: File,
+  ownerId?: string,
+) {
+  const body = new FormData();
+  body.append("asset_type", assetType);
+  if (ownerId) {
+    body.append("owner_id", ownerId);
+  }
+  body.append("file", file);
+  return uploadRequest<AssetUploadResponse>("/assets/upload", token, body);
 }
 
 export async function runDailyPlan(token: string) {

@@ -6,7 +6,7 @@ Update this file whenever frontend pages, layouts, protected routes, backend rou
 
 ## Current State
 
-Phase 10 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products/content/calendar view switch without React Router. Backend has health, auth, business profile, product, generated content, schedule, poster, mock social publishing, and daily-plan endpoints.
+Phase 12 scaffold routes exist. Frontend has an in-app auth-gated dashboard/business/products/references/content/calendar view switch without React Router. Backend has health, auth, asset upload, business profile, product, reference image, generated content, schedule, poster, mock social publishing, and daily-plan endpoints.
 
 ## Planned Frontend Routes
 
@@ -16,6 +16,7 @@ Phase 10 scaffold routes exist. Frontend has an in-app auth-gated dashboard/busi
 | Dashboard view | `frontend/src/pages/Dashboard/DashboardPage.tsx` | Main dashboard shell | Yes |
 | Business view | `frontend/src/pages/BusinessProfile/BusinessProfilePage.tsx` | Business profile, audience, goals, brand tone | Yes |
 | Products view | `frontend/src/pages/Products/ProductsPage.tsx` | Product memory management | Yes |
+| References view | `frontend/src/pages/ReferenceImages/ReferenceImagesPage.tsx` | Labelled visual reference images | Yes |
 | Content view | `frontend/src/pages/GeneratedContent/GeneratedContentPage.tsx` | Review generated captions, hashtags, and poster prompts | Yes |
 | Calendar view | `frontend/src/pages/ContentCalendar/ContentCalendarPage.tsx` | Schedule approved generated content | Yes |
 | `/login` | `frontend/src/pages/Login/` | Future React Router login route | No |
@@ -38,6 +39,7 @@ Phase 10 scaffold routes exist. Frontend has an in-app auth-gated dashboard/busi
 |---|---|---|---|
 | `GET` | `/health` | Backend health check, implemented | No |
 | `GET` | `/me` | Current Firebase user context, implemented | Yes |
+| `POST` | `/assets/upload` | Upload brand/reference/product/generated poster images to Firebase Storage, implemented | Yes |
 | `POST` | `/business/profile` | Create or update business profile, implemented | Yes |
 | `GET` | `/business/profile` | Read current business profile, implemented | Yes |
 | `POST` | `/products` | Create product, implemented | Yes |
@@ -45,6 +47,10 @@ Phase 10 scaffold routes exist. Frontend has an in-app auth-gated dashboard/busi
 | `GET` | `/products/{product_id}` | Read product, implemented | Yes |
 | `PATCH` | `/products/{product_id}` | Update product, implemented | Yes |
 | `DELETE` | `/products/{product_id}` | Delete product, implemented | Yes |
+| `POST` | `/reference-images` | Create labelled visual reference, implemented | Yes |
+| `GET` | `/reference-images` | List labelled visual references, implemented | Yes |
+| `PATCH` | `/reference-images/{reference_image_id}` | Update labelled visual reference, implemented | Yes |
+| `DELETE` | `/reference-images/{reference_image_id}` | Delete labelled visual reference, implemented | Yes |
 | `POST` | `/agent/run-daily-plan` | Generate daily marketing plan from one business profile and products, implemented | Yes |
 | `GET` | `/content/plans` | List content plans | Yes |
 | `GET` | `/content/posts` | List generated posts, implemented | Yes |

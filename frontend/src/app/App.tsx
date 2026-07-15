@@ -17,8 +17,15 @@ import { DashboardPage } from "../pages/Dashboard/DashboardPage";
 import { GeneratedContentPage } from "../pages/GeneratedContent/GeneratedContentPage";
 import { LoginPage } from "../pages/Login/LoginPage";
 import { ProductsPage } from "../pages/Products/ProductsPage";
+import { ReferenceImagesPage } from "../pages/ReferenceImages/ReferenceImagesPage";
 
-type AppView = "dashboard" | "business" | "products" | "content" | "calendar";
+type AppView =
+  | "dashboard"
+  | "business"
+  | "products"
+  | "references"
+  | "content"
+  | "calendar";
 
 export function App() {
   const { loading, logout, user } = useAuth();
@@ -64,6 +71,13 @@ export function App() {
               Products
             </Button>
             <Button
+              color={view === "references" ? "primary" : "inherit"}
+              onClick={() => setView("references")}
+              variant={view === "references" ? "contained" : "text"}
+            >
+              References
+            </Button>
+            <Button
               color={view === "content" ? "primary" : "inherit"}
               onClick={() => setView("content")}
               variant={view === "content" ? "contained" : "text"}
@@ -88,6 +102,7 @@ export function App() {
         {view === "dashboard" ? <DashboardPage /> : null}
         {view === "business" ? <BusinessProfilePage /> : null}
         {view === "products" ? <ProductsPage /> : null}
+        {view === "references" ? <ReferenceImagesPage /> : null}
         {view === "content" ? <GeneratedContentPage /> : null}
         {view === "calendar" ? <ContentCalendarPage /> : null}
       </Container>

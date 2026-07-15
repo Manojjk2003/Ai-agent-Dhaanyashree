@@ -11,6 +11,7 @@ from app.config import settings
 from app.schemas.business import BusinessProfileResponse
 from app.schemas.generated_post import GeneratedPostResponse
 from app.schemas.product import ProductResponse
+from app.schemas.reference_image import ReferenceImageResponse
 from app.schemas.scheduled_post import ScheduleRecommendationResponse
 
 
@@ -41,11 +42,18 @@ def generate_marketing_content(
     product: ProductResponse,
     selection_reason: str,
     require_poster: bool,
+    reference_images: list[ReferenceImageResponse] | None = None,
 ) -> MarketingContent | None:
     if settings.llm_provider.lower() != "gemini" or not settings.gemini_api_key:
         return None
 
-    prompt = _build_prompt(business, product, selection_reason, require_poster)
+    prompt = _build_prompt(
+        business,
+        product,
+        selection_reason,
+        require_poster,
+        reference_images or [],
+    )
     payload = {
         "model": settings.gemini_model,
         "system_instruction": (
@@ -154,6 +162,7 @@ def _build_prompt(
     product: ProductResponse,
     selection_reason: str,
     require_poster: bool,
+    reference_images: list[ReferenceImageResponse],
 ) -> str:
     return json.dumps(
         {
@@ -167,6 +176,10 @@ def _build_prompt(
                 "Make the caption specific to the product and audience.",
                 "Return 5 to 8 hashtags.",
                 "If poster_prompt is requested, make it useful for image generation.",
+                "If brand logo is available, include a clear top logo placement instruction in poster_prompt.",
+                "Use the brand kit, website, contact details, product images, and reference image labels as business memory.",
+                "The output should feel like it came from this exact business, not a generic AI brand.",
+                "For poster_prompt, describe how to use product/reference visuals without inventing a different package or logo.",
             ],
             "required_json_shape": {
                 "content_type": "short label such as Educational post or Offer post",
@@ -181,9 +194,13 @@ def _build_prompt(
                 "name": business.business_name,
                 "industry": business.industry,
                 "description": business.description,
+                "website_url": business.website_url,
+                "address": business.address,
+                "phone_number": business.phone_number,
                 "target_audience": business.target_audience,
                 "brand_tone": business.brand_tone,
                 "goals": business.goals,
+                "brand_kit": business.brand_kit.model_dump(),
             },
             "product": {
                 "name": product.name,
@@ -193,6 +210,23 @@ def _build_prompt(
                 "ingredients": product.ingredients,
                 "price": product.price,
                 "target_audience": product.target_audience,
+                "image_urls": product.image_urls,
+                "image_notes": product.image_notes,
+            },
+            "visual_memory": {
+                "brand_logo_url": business.brand_kit.logo_url,
+                "brand_avatar_url": business.brand_kit.avatar_url,
+                "product_image_urls": product.image_urls,
+                "reference_images": [
+                    {
+                        "name": reference.name,
+                        "type": reference.reference_type,
+                        "labels": reference.labels,
+                        "notes": reference.notes,
+                        "image_url": reference.image_url,
+                    }
+                    for reference in reference_images[:8]
+                ],
             },
         }
     )
@@ -230,9 +264,11 @@ def _build_schedule_prompt(
                 "name": business.business_name,
                 "industry": business.industry,
                 "description": business.description,
+                "website_url": business.website_url,
                 "target_audience": business.target_audience,
                 "brand_tone": business.brand_tone,
                 "goals": business.goals,
+                "brand_kit": business.brand_kit.model_dump(),
             },
             "product": {
                 "name": product.name,
@@ -242,6 +278,7 @@ def _build_schedule_prompt(
                 "ingredients": product.ingredients,
                 "price": product.price,
                 "target_audience": product.target_audience,
+                "image_notes": product.image_notes,
             },
             "content": {
                 "content_type": generated_post.content_type,

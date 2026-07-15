@@ -6,7 +6,7 @@ Update this file whenever system boundaries, services, agents, deployment shape,
 
 ## Current State
 
-Phase 10 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile, product management, daily plan generation, generated content review, manual content calendar, AI schedule time recommendation, poster generation/preview, and mock publish controls. The backend has health, current-user, business profile, product, generated content, schedule, poster, mock social publishing, and daily-plan routes. Firebase Admin verification and Firestore business/product/generated-content/scheduled-content/generated-poster persistence are implemented. Daily plan generation and schedule recommendation try Gemini when configured and fall back to deterministic generation when Gemini is unavailable. Poster generation now supports a separate image provider setting with Hugging Face FLUX, Gemini image generation, or local fallback SVG.
+Phase 13 foundation scaffold exists. The frontend initializes Firebase, supports email/password sign in/sign up, gates the app by auth state, includes one business profile with brand kit uploads, product management with multiple uploaded product images, labelled reference image memory with uploads, daily plan generation, generated content review, manual content calendar, AI schedule time recommendation, poster generation/preview, and mock publish controls. The backend has health, current-user, asset upload, business profile, product, reference image, generated content, schedule, poster, mock social publishing, and daily-plan routes. Firebase Admin verification, Firebase Storage uploads, and Firestore business/product/reference-image/generated-content/scheduled-content/generated-poster persistence are implemented. Daily plan generation and schedule recommendation try Gemini when configured and fall back to deterministic generation when Gemini is unavailable. Content and poster prompts now use brand kit, business contact details, product images, product notes, and reference image labels/notes as active visual memory. Poster generation supports Hugging Face FLUX, Gemini image generation, or local fallback SVG; raster posters are uploaded to Firebase Storage and stamped with configured brand logo plus uploaded product imagery when available.
 
 ## Intended System Map
 
@@ -28,8 +28,10 @@ FastAPI Backend
   +--> API Routes
   |       +--> Health API: implemented
   |       +--> Auth API: implemented
+  |       +--> Asset Upload API: implemented
   |       +--> Business/Profile APIs: implemented
   |       +--> Product APIs: implemented
+  |       +--> Reference Image APIs: implemented
   |       +--> Generated Content APIs: implemented
   |       +--> Schedule APIs: implemented
   |       +--> Poster APIs: implemented
@@ -39,15 +41,16 @@ FastAPI Backend
   |       `--> Agent Log APIs: planned
   |
   +--> LangGraph Workflows
-  |       +--> Daily Marketing Graph: Gemini-backed implementation with fallback
+  |       +--> Daily Marketing Graph: Gemini-backed implementation with brand/product visual memory and fallback
   |       +--> SEO Graph
   |       +--> Analytics Recommendation Graph
   |       `--> Future Video Graph
   |
   +--> Services
   |       +--> LLM Service: Gemini Interactions API integration
-  |       +--> Image Service: Hugging Face FLUX, Gemini image generation, plus fallback SVG
-  |       +--> Firebase Service: placeholder
+  |       +--> Image Service: Hugging Face FLUX, Gemini image generation, logo overlay, plus fallback SVG
+  |       +--> Storage Service: Firebase Storage uploads
+  |       +--> Firebase Service: Firestore/Auth integration
   |       +--> Social Service: mock publisher boundary
   |       `--> Scheduler Service: placeholder
   |
@@ -198,13 +201,13 @@ POST /agent/run-daily-plan
 Backend verifies Firebase token
   |
   v
-Backend loads one business profile and products
+Backend loads one business profile, products, and labelled reference images
   |
   v
 Product selection agent chooses product
   |
   v
-LLM service tries Gemini with business and product memory
+LLM service tries Gemini with business, brand kit, product memory, and reference visual memory
   |
   +--> If Gemini succeeds, use LLM caption, hashtags, and poster prompt
   |
@@ -256,22 +259,47 @@ Content review screen
 User clicks Generate Poster
   |
   v
-Backend loads generated post and poster prompt
+Backend loads generated post, business profile, selected product, and reference images
   |
   v
 Image service checks IMAGE_PROVIDER
   |
-  +--> If Hugging Face FLUX succeeds, save generated image file
+  +--> If Hugging Face FLUX succeeds, generate PNG poster
   |
-  +--> If Gemini succeeds, save generated image file
+  +--> If Gemini succeeds, generate PNG poster
   |
   `--> If provider fails, save fallback SVG poster with error_message
+  |
+  +--> If product image exists and output is raster, overlay product image in final composition
+  |
+  +--> If brand logo URL exists and output is raster, overlay logo at top
   |
   v
 Backend writes generated_posters metadata
   |
   v
-Frontend previews poster from /static/posters
+Frontend previews poster from Firebase Storage URL, or /static/posters only if Storage upload fails locally
+```
+
+Current asset upload behavior:
+
+```text
+Business, Products, or References screen
+  |
+  v
+User selects local image file
+  |
+  v
+POST /assets/upload multipart request with Firebase ID token
+  |
+  v
+Backend stores file in Firebase Storage
+  |
+  v
+Backend returns download URL and storage path
+  |
+  v
+Frontend saves URL into brand kit, product gallery, or reference image record
 ```
 
 Current social publish behavior:
@@ -336,6 +364,7 @@ Future:
 - Keep agent logs as first-class data so outputs are inspectable.
 - Use `businessId` as the main partition key for multi-business support.
 - Store generated assets in Firebase Storage and metadata in Firestore.
+- Keep local poster file fallback only as a development safety net when Firebase Storage is unavailable.
 
 ## Unknowns
 

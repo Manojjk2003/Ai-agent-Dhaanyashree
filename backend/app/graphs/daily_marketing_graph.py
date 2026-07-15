@@ -38,11 +38,13 @@ def run_daily_marketing_graph(
         )
 
     selected_product, selection_reason = select_product(business, products)
+    reference_images = firebase_service.list_reference_images(user)
     llm_content = generate_marketing_content(
         business,
         selected_product,
         selection_reason,
         request.require_poster,
+        reference_images,
     )
 
     if llm_content:
@@ -61,6 +63,7 @@ def run_daily_marketing_graph(
                 selected_product,
                 content_type,
                 content_idea,
+                reference_images,
             )
             if request.require_poster
             else None

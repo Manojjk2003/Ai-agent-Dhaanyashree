@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     firebase_private_key: str | None = None
     firebase_storage_bucket: str | None = None
     firebase_service_account_file: str | None = None
+    firebase_token_clock_skew_seconds: int = 10
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

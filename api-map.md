@@ -6,7 +6,7 @@ Update this file whenever an endpoint is added, removed, renamed, or its request
 
 ## Current State
 
-Phase 10 backend scaffold exists. `GET /health`, `GET /me`, business profile APIs, product APIs, generated content APIs, schedule APIs, poster APIs, mock social publish API, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. The daily-plan endpoint reads the authenticated user's one business profile and products, tries Gemini-backed content generation when configured, falls back to deterministic generation when needed, and saves the generated content for review. Approved generated content can be scheduled into the manual calendar queue. Poster generation can use Hugging Face FLUX, Gemini image generation, or fallback SVG output depending on backend image provider settings.
+Phase 13 backend scaffold exists. `GET /health`, `GET /me`, protected asset upload, business profile APIs with brand kit fields, product APIs with image galleries, reference image APIs, generated content APIs, schedule APIs, poster APIs, mock social publish API, and `POST /agent/run-daily-plan` are implemented. Protected endpoints require a Firebase ID token. Brand, reference, product, and generated poster images are stored in Firebase Storage when configured. Brand kit, uploaded product images, and labelled reference image memory are active generation context. Generated raster posters are stamped with the uploaded brand logo and composited with uploaded product imagery before storage when those assets exist.
 
 ## API Inventory
 
@@ -14,6 +14,7 @@ Phase 10 backend scaffold exists. `GET /health`, `GET /me`, business profile API
 |---|---|---|---|
 | `GET` | `/health` | Health check, implemented | Hosting, uptime checks, frontend dashboard |
 | `GET` | `/me` | Return authenticated Firebase user | Frontend shell |
+| `POST` | `/assets/upload` | Upload brand/reference/product/generated poster images to Firebase Storage | Business, Products, References, Poster service |
 | `POST` | `/business/profile` | Create or update business profile, implemented | Business Profile page |
 | `GET` | `/business/profile` | Read business profile, implemented | Business Profile page, future agents |
 | `POST` | `/products` | Create product, implemented | Products page |
@@ -21,6 +22,10 @@ Phase 10 backend scaffold exists. `GET /health`, `GET /me`, business profile API
 | `GET` | `/products/{product_id}` | Read product details, implemented | Products page |
 | `PATCH` | `/products/{product_id}` | Update product, implemented | Products page |
 | `DELETE` | `/products/{product_id}` | Delete product, implemented | Products page |
+| `POST` | `/reference-images` | Create labelled visual reference | Reference Images page |
+| `GET` | `/reference-images` | List labelled visual references | Reference Images page, future image agent |
+| `PATCH` | `/reference-images/{reference_image_id}` | Update visual reference | Reference Images page |
+| `DELETE` | `/reference-images/{reference_image_id}` | Delete visual reference | Reference Images page |
 | `POST` | `/agent/run-daily-plan` | Generate daily marketing plan and save generated post | Dashboard, Content page |
 | `GET` | `/content/plans` | List content plans | Calendar |
 | `GET` | `/content/posts` | List generated posts, implemented | Generated Content page |
@@ -68,6 +73,29 @@ Response:
 }
 ```
 
+### `POST /assets/upload`
+
+Purpose: upload image files through the backend to Firebase Storage.
+
+Request: multipart form data.
+
+Fields:
+
+- `asset_type`: `brand_logo`, `brand_avatar`, `reference_image`, `product_image`, or `generated_poster`
+- `owner_id`: optional product/reference/post identifier
+- `file`: image file
+
+Response:
+
+```json
+{
+  "image_url": "https://firebasestorage.googleapis.com/...",
+  "storage_path": "businesses/firebase_uid/product-images/product_123/file.png",
+  "content_type": "image/png",
+  "file_name": "file.png"
+}
+```
+
 ### `POST /business/profile`
 
 Purpose: save business memory.
@@ -79,9 +107,25 @@ Request:
   "business_name": "Example Millet Foods",
   "industry": "Health food",
   "description": "Millet-based healthy breakfast products",
+  "website_url": "https://example.com",
+  "address": "Shop address",
+  "phone_number": "+91...",
+  "email": "owner@example.com",
+  "license_number": "FSSAI...",
   "target_audience": ["working mothers", "health-conscious families"],
   "brand_tone": "warm, trustworthy, practical",
-  "goals": ["increase daily orders", "grow Instagram reach"]
+  "goals": ["increase daily orders", "grow Instagram reach"],
+  "brand_kit": {
+    "logo_url": "https://example.com/logo.png",
+    "avatar_url": "https://example.com/avatar.png",
+    "primary_color": "#1b7b68",
+    "secondary_color": "#d9542b",
+    "accent_color": "#f2c94c",
+    "font_family": "Inter",
+    "heading_font_family": "Poppins",
+    "visual_style": ["Clean", "Natural light"],
+    "brand_keywords": ["healthy", "traditional"]
+  }
 }
 ```
 
@@ -135,6 +179,8 @@ Request:
   "price": 199,
   "target_audience": ["kids", "families"],
   "image_url": "",
+  "image_urls": ["https://example.com/front.jpg", "https://example.com/back.jpg"],
+  "image_notes": "Use front pack and serving bowl angle for posters.",
   "is_active": true
 }
 ```
@@ -174,10 +220,48 @@ Response:
     "price": 199,
     "target_audience": ["families"],
     "image_url": "",
+    "image_urls": [],
+    "image_notes": "",
     "is_active": true
   }
 ]
 ```
+
+### `POST /reference-images`
+
+Purpose: create labelled visual memory for things the AI may not know, such as foxtail millet, packaging, ingredient closeups, or preferred style examples.
+
+Request:
+
+```json
+{
+  "name": "Foxtail Millet",
+  "image_url": "https://example.com/foxtail-millet.jpg",
+  "reference_type": "ingredient",
+  "labels": ["foxtail millet", "raw grain", "yellow millet"],
+  "notes": "Use this when the product or prompt mentions foxtail millet."
+}
+```
+
+Response:
+
+```json
+{
+  "reference_image_id": "ref_123",
+  "business_id": "firebase_uid",
+  "name": "Foxtail Millet",
+  "image_url": "https://example.com/foxtail-millet.jpg",
+  "reference_type": "ingredient",
+  "labels": ["foxtail millet", "raw grain", "yellow millet"],
+  "notes": "Use this when the product or prompt mentions foxtail millet.",
+  "created_at": "2026-07-14T10:00:00+00:00",
+  "updated_at": "2026-07-14T10:00:00+00:00"
+}
+```
+
+### `GET /reference-images`
+
+Response: list of the same objects returned by `POST /reference-images`.
 
 ### `POST /agent/run-daily-plan`
 

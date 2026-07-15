@@ -20,6 +20,7 @@ import {
   deleteProduct,
   listProducts,
   updateProduct,
+  uploadAsset,
 } from "../../services/api";
 
 const emptyProduct: ProductInput = {
@@ -31,6 +32,8 @@ const emptyProduct: ProductInput = {
   price: null,
   target_audience: [],
   image_url: "",
+  image_urls: [],
+  image_notes: "",
   is_active: true,
 };
 
@@ -45,6 +48,23 @@ function joinList(value: string[]) {
   return value.join(", ");
 }
 
+function normalizeProduct(product: ProductResponse): ProductResponse {
+  const imageUrls = product.image_urls ?? [];
+  return {
+    ...emptyProduct,
+    ...product,
+    benefits: product.benefits ?? [],
+    ingredients: product.ingredients ?? [],
+    target_audience: product.target_audience ?? [],
+    image_urls: imageUrls.length
+      ? imageUrls
+      : product.image_url
+        ? [product.image_url]
+        : [],
+    image_notes: product.image_notes ?? "",
+  };
+}
+
 export function ProductsPage() {
   const { getIdToken } = useAuth();
   const [products, setProducts] = useState<ProductResponse[]>([]);
@@ -52,9 +72,11 @@ export function ProductsPage() {
   const [benefits, setBenefits] = useState("");
   const [ingredients, setIngredients] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
+  const [imageUrls, setImageUrls] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -69,7 +91,8 @@ export function ProductsPage() {
 
     try {
       const token = await getIdToken();
-      setProducts(await listProducts(token));
+      const loadedProducts = await listProducts(token);
+      setProducts(loadedProducts.map(normalizeProduct));
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "Could not load products");
     } finally {
@@ -88,14 +111,17 @@ export function ProductsPage() {
     setBenefits("");
     setIngredients("");
     setTargetAudience("");
+    setImageUrls("");
   }
 
   function editProduct(product: ProductResponse) {
+    const normalized = normalizeProduct(product);
     setEditingId(product.product_id);
-    setForm(product);
-    setBenefits(joinList(product.benefits));
-    setIngredients(joinList(product.ingredients));
-    setTargetAudience(joinList(product.target_audience));
+    setForm(normalized);
+    setBenefits(joinList(normalized.benefits));
+    setIngredients(joinList(normalized.ingredients));
+    setTargetAudience(joinList(normalized.target_audience));
+    setImageUrls(joinList(normalized.image_urls));
     setSaved(false);
     setError(null);
   }
@@ -106,11 +132,14 @@ export function ProductsPage() {
     setSaved(false);
     setSaving(true);
 
+    const parsedImageUrls = splitList(imageUrls);
     const payload: ProductInput = {
       ...form,
       benefits: splitList(benefits),
       ingredients: splitList(ingredients),
       target_audience: splitList(targetAudience),
+      image_urls: parsedImageUrls,
+      image_url: parsedImageUrls[0] ?? form.image_url,
     };
 
     try {
@@ -128,6 +157,40 @@ export function ProductsPage() {
       setError(exc instanceof Error ? exc.message : "Could not save product");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function uploadProductImages(files: FileList | null) {
+    if (!files?.length) {
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const token = await getIdToken();
+      const uploadedUrls: string[] = [];
+      for (const file of Array.from(files)) {
+        const uploaded = await uploadAsset(
+          token,
+          "product_image",
+          file,
+          editingId ?? "unassigned",
+        );
+        uploadedUrls.push(uploaded.image_url);
+      }
+      const nextUrls = [...splitList(imageUrls), ...uploadedUrls];
+      setImageUrls(joinList(nextUrls));
+      setForm({
+        ...form,
+        image_url: nextUrls[0] ?? form.image_url,
+        image_urls: nextUrls,
+      });
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "Could not upload product images");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -237,11 +300,42 @@ export function ProductsPage() {
               />
               <TextField
                 disabled={saving}
-                label="Image URL"
+                helperText="Primary image for compatibility. The first gallery image is also saved here."
+                label="Primary image URL"
                 onChange={(event) =>
                   setForm({ ...form, image_url: event.target.value })
                 }
                 value={form.image_url}
+              />
+              <TextField
+                disabled={saving}
+                helperText="Separate image URLs with commas. Use front, back, top, packaging, serving, and close-up images."
+                label="Product image URLs"
+                minRows={3}
+                multiline
+                onChange={(event) => setImageUrls(event.target.value)}
+                value={imageUrls}
+              />
+              <Button component="label" disabled={saving || uploading} variant="outlined">
+                {uploading ? "Uploading..." : "Upload Product Images"}
+                <input
+                  accept="image/*"
+                  hidden
+                  multiple
+                  onChange={(event) => uploadProductImages(event.target.files)}
+                  type="file"
+                />
+              </Button>
+              <TextField
+                disabled={saving}
+                helperText="Describe angles or details the AI should understand"
+                label="Image notes"
+                minRows={2}
+                multiline
+                onChange={(event) =>
+                  setForm({ ...form, image_notes: event.target.value })
+                }
+                value={form.image_notes}
               />
               <Stack alignItems="center" direction="row" spacing={1}>
                 <Switch
@@ -268,50 +362,71 @@ export function ProductsPage() {
 
         <Grid item xs={12} md={7}>
           <Stack spacing={2}>
-            {products.map((product) => (
-              <Paper className="product-card" key={product.product_id}>
-                <Stack spacing={1}>
-                  <Stack
-                    alignItems="flex-start"
-                    direction="row"
-                    justifyContent="space-between"
-                    spacing={2}
-                  >
-                    <Stack spacing={0.5}>
-                      <Typography variant="h2">{product.name}</Typography>
-                      <Typography color="text.secondary">
-                        {product.category || "No category"}
-                        {product.price !== null ? ` | Rs. ${product.price}` : ""}
-                      </Typography>
-                    </Stack>
-                    <Chip
-                      color={product.is_active ? "success" : "default"}
-                      label={product.is_active ? "Active" : "Inactive"}
-                    />
-                  </Stack>
-                  {product.description ? (
-                    <Typography>{product.description}</Typography>
-                  ) : null}
-                  {product.benefits.length ? (
-                    <Typography color="text.secondary">
-                      Benefits: {joinList(product.benefits)}
-                    </Typography>
-                  ) : null}
-                  <Stack direction="row" spacing={1}>
-                    <Button onClick={() => editProduct(product)} variant="outlined">
-                      Edit
-                    </Button>
-                    <Button
-                      color="error"
-                      onClick={() => handleDelete(product.product_id)}
-                      variant="text"
+            {products.map((rawProduct) => {
+              const product = normalizeProduct(rawProduct);
+              return (
+                <Paper className="product-card" key={product.product_id}>
+                  <Stack spacing={1}>
+                    <Stack
+                      alignItems="flex-start"
+                      direction="row"
+                      justifyContent="space-between"
+                      spacing={2}
                     >
-                      Delete
-                    </Button>
+                      <Stack spacing={0.5}>
+                        <Typography variant="h2">{product.name}</Typography>
+                        <Typography color="text.secondary">
+                          {product.category || "No category"}
+                          {product.price !== null ? ` | Rs. ${product.price}` : ""}
+                        </Typography>
+                      </Stack>
+                      <Chip
+                        color={product.is_active ? "success" : "default"}
+                        label={product.is_active ? "Active" : "Inactive"}
+                      />
+                    </Stack>
+                    {product.description ? (
+                      <Typography>{product.description}</Typography>
+                    ) : null}
+                    {product.image_urls.length ? (
+                      <Stack direction="row" spacing={1} className="image-strip">
+                        {product.image_urls.slice(0, 4).map((imageUrl) => (
+                          <Box
+                            alt={`${product.name} reference`}
+                            className="thumb-image"
+                            component="img"
+                            key={imageUrl}
+                            src={imageUrl}
+                          />
+                        ))}
+                      </Stack>
+                    ) : null}
+                    {product.benefits.length ? (
+                      <Typography color="text.secondary">
+                        Benefits: {joinList(product.benefits)}
+                      </Typography>
+                    ) : null}
+                    {product.image_notes ? (
+                      <Typography color="text.secondary">
+                        Image notes: {product.image_notes}
+                      </Typography>
+                    ) : null}
+                    <Stack direction="row" spacing={1}>
+                      <Button onClick={() => editProduct(product)} variant="outlined">
+                        Edit
+                      </Button>
+                      <Button
+                        color="error"
+                        onClick={() => handleDelete(product.product_id)}
+                        variant="text"
+                      >
+                        Delete
+                      </Button>
+                    </Stack>
                   </Stack>
-                </Stack>
-              </Paper>
-            ))}
+                </Paper>
+              );
+            })}
 
             {!loading && products.length === 0 ? (
               <Paper className="product-card">

@@ -38,9 +38,15 @@ Fields:
 - `business_name`
 - `industry`
 - `description`
+- `website_url`
+- `address`
+- `phone_number`
+- `email`
+- `license_number`
 - `goals`
 - `target_audience`
 - `brand_tone`
+- `brand_kit`
 - `createdAt`
 - `updatedAt`
 
@@ -48,6 +54,7 @@ Current implementation detail:
 
 - Document path: `businesses/{firebase_uid}`
 - Stored field names currently use snake_case, matching the API schemas.
+- Older business documents without Phase 11 brand/contact fields are normalized with defaults when read.
 
 Relationships:
 
@@ -83,6 +90,8 @@ Fields:
 - `price`
 - `category`
 - `image_url`
+- `image_urls`
+- `image_notes`
 - `targetAudience`
 - `isActive`
 - `createdAt`
@@ -94,6 +103,28 @@ Current implementation detail:
 - Each product stores `business_id` to link it to the user's one business profile.
 - Stored field names currently use snake_case, matching the API schemas.
 - `DELETE /products/{product_id}` physically deletes the product document in the current MVP.
+- Older product documents without `image_urls` are returned with `image_urls` derived from `image_url` when present.
+
+### `reference_images`
+
+Purpose: labelled visual memory for ingredients, product examples, packaging, and style references that image generation should understand.
+
+Fields:
+
+- `business_id`
+- `name`
+- `image_url`
+- `reference_type`
+- `labels`
+- `notes`
+- `created_at`
+- `updated_at`
+
+Current implementation detail:
+
+- Document path: `reference_images/{referenceImageId}`
+- Each reference image stores `business_id` to link it to the user's one business profile.
+- Current implementation uploads files to Firebase Storage and stores the resulting download URL in `image_url`.
 
 ### `trends`
 
@@ -393,11 +424,24 @@ Planned Firebase Storage paths:
 
 ```text
 businesses/{businessId}/product-images/{productId}/{fileName}
+businesses/{businessId}/brand-assets/{fileName}
+businesses/{businessId}/reference-images/{referenceImageId}/{fileName}
 businesses/{businessId}/posters/{posterId}/{fileName}
 businesses/{businessId}/videos/{videoId}/{fileName}
 businesses/{businessId}/blogs/{blogId}/{fileName}
-businesses/{businessId}/brand-assets/{fileName}
 ```
+
+Current Firebase Storage paths:
+
+```text
+businesses/{businessId}/brand-assets/logo/{fileName}
+businesses/{businessId}/brand-assets/avatar/{fileName}
+businesses/{businessId}/reference-images/{referenceImageIdOrUnassigned}/{fileName}
+businesses/{businessId}/product-images/{productIdOrUnassigned}/{fileName}
+businesses/{businessId}/posters/{postId}/{fileName}
+```
+
+Generated poster note: Hugging Face/Gemini raster outputs are stamped with the business logo at the top when `businesses/{businessId}.brand_kit.logo_url` exists. If selected product images exist, the first uploaded product image is composited into the final raster poster. The final poster is then stored at the poster path above. If Firebase Storage is unavailable during local development, the backend falls back to `/static/posters` and records the fallback reason in poster metadata.
 
 ## Indexing Notes
 

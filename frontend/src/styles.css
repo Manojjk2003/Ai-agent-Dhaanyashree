@@ -49,6 +49,12 @@ body {
   max-width: 760px;
 }
 
+.business-profile-panel {
+  box-sizing: border-box;
+  max-width: none;
+  width: 100%;
+}
+
 .product-card {
   border: 1px solid #dde4dc;
   box-shadow: none;
@@ -116,6 +122,25 @@ body {
 .action-list {
   margin: 0;
   padding-left: 20px;
+}
+
+.option-grid {
+  display: grid;
+  gap: 4px 16px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.image-strip {
+  flex-wrap: wrap;
+}
+
+.thumb-image {
+  aspect-ratio: 1;
+  border: 1px solid #dde4dc;
+  border-radius: 6px;
+  height: 72px;
+  object-fit: cover;
+  width: 72px;
 }
 
 @media (max-width: 720px) {
